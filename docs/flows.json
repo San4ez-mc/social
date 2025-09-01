@@ -1,0 +1,135 @@
+{
+  "login": [
+    {
+      "step": 1,
+      "page": "Threads Home (unauthenticated)",
+      "url": "https://www.threads.net/?hl=uk",
+      "action": "open login",
+      "selectors": {
+        "loginAnchor": "THREADS_LOGIN_ANCHOR",
+        "loginText": "THREADS_LOGIN_ENTRY_TEXT"
+      },
+      "next": [2]
+    },
+    {
+      "step": 2,
+      "page": "Threads Login",
+      "url": "https://www.threads.net/login",
+      "action": "continue with Instagram",
+      "selectors": {
+        "continueWithInstagram": "THREADS_CONTINUE_WITH_IG"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "followUser": [
+    {
+      "step": 1,
+      "page": "Profile",
+      "url": "https://www.threads.com/<handle>",
+      "action": "follow user",
+      "selectors": {
+        "followButton": "SELECTORS.profile.followButton",
+        "followingButton": "SELECTORS.profile.followingButton"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "likeRandomPosts": [
+    {
+      "step": 1,
+      "page": "Profile",
+      "url": "https://www.threads.com/<handle>",
+      "action": "like random posts",
+      "selectors": {
+        "likeButtonsRoot": "SELECTORS.profile.posts.likeButtons.root",
+        "likeButton": "SELECTORS.profile.posts.likeButtons.item"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "leaveComment": [
+    {
+      "step": 1,
+      "page": "Profile",
+      "url": "https://www.threads.com/<handle>",
+      "action": "open first post and leave comment",
+      "selectors": {
+        "firstPost": "SELECTORS.profile.posts.firstPost",
+        "commentInput": "SELECTORS.post.comment.input",
+        "commentSubmit": "SELECTORS.post.comment.submit",
+        "closePost": "SELECTORS.post.closeModal"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "searchUsers": [
+    {
+      "step": 1,
+      "page": "Feed",
+      "url": "https://www.threads.net/",
+      "action": "open search and collect profiles",
+      "selectors": {
+        "searchButton": "SELECTORS.feed.searchButton",
+        "searchInput": "SELECTORS.search.input",
+        "profileCards": "SELECTORS.search.results.profileCards"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "search.follow": [
+    {
+      "step": 1,
+      "page": "Feed",
+      "url": "https://www.threads.net/",
+      "action": "search and follow from results",
+      "selectors": {
+        "searchButton": "[aria-label='Search']",
+        "searchInput": "input[type='search']",
+        "profileLink": "a[href*='/@']",
+        "followButton": "button:has-text('Follow')"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "engageByKeywords": [
+    {
+      "step": 1,
+      "page": "Feed",
+      "url": "https://www.threads.net/",
+      "action": "choose keyword, search users, like posts, follow, maybe comment",
+      "selectors": {
+        "searchInput": "SELECTORS.search.input",
+        "likeButton": "SELECTORS.profile.posts.likeButtons.item",
+        "followButton": "SELECTORS.profile.followButton",
+        "commentInput": "SELECTORS.post.comment.input"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "feed.engage": [
+    {
+      "step": 1,
+      "page": "Feed",
+      "url": "https://www.threads.net/",
+      "action": "scroll and react to feed posts",
+      "selectors": {
+        "scrollContainer": "window",
+        "postActions": "depends on DOM"
+      },
+      "next": ["feed"]
+    }
+  ],
+  "post.write": [
+    {
+      "step": 1,
+      "page": "Composer",
+      "url": "https://www.threads.net/",
+      "action": "open composer and post thread",
+      "selectors": {
+        "composer": "THREADS_COMPOSER_ANY"
+      },
+      "next": ["feed"]
+    }
+  ]
+}

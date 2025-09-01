@@ -394,7 +394,7 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("Go to Threads login", async () => {
         await retry(async () => {
-            await page.goto('https://www.threads.com/login', { waitUntil: "domcontentloaded", timeout: 30000 });
+            await page.goto('https://www.threads.com/login?hl=uk', { waitUntil: "domcontentloaded", timeout: 30000 });
         });
         await takeShot(page, "login_loaded");
     }, { page });

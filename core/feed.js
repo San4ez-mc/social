@@ -26,7 +26,8 @@ export async function scrollAndReact(page, {
     keywords = [],
     doLike = true,
     doComment = false,
-    commentText = '🔥'
+    commentText = '🔥',
+    generateComment = null
 } = {}) {
     await waitForAny(page, ['body'], { timeout: 8000, optional: false });
     const reacted = { liked: 0, commented: 0 };
@@ -76,6 +77,7 @@ export async function scrollAndReact(page, {
             // комент
             if (doComment && p.comment) {
                 try {
+                    const reply = generateComment ? await generateComment(p.text) : commentText;
                     await page.evaluate((payload) => {
                         const { text, reply } = payload;
                         const blocks = document.querySelectorAll('article, div[role="article"], div.x78zum5.xdt5ytf');
@@ -87,12 +89,12 @@ export async function scrollAndReact(page, {
                                 break;
                             }
                         }
-                    }, { text: p.text, reply: commentText });
+                    }, { text: p.text, reply });
                     await page.waitForTimeout(300);
 
                     const replyBox = await page.$('textarea, div[contenteditable="true"]');
                     if (replyBox) {
-                        await replyBox.type(commentText, { delay: 10 });
+                        await replyBox.type(reply, { delay: 10 });
                         await page.keyboard.press('Enter');
                         reacted.commented++;
                         await page.waitForTimeout(300);

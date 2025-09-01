@@ -3,19 +3,28 @@
 
 import { tryStep } from '../helpers/misc.js';
 import { ensureThreadsReady } from '../core/login.js';
-import { slowScroll } from '../utils.js';
+import { scrollAndReact } from '../core/feed.js';
+import { BUSINESS_SEARCH_KEYWORDS } from '../constants/keywords.js';
+import { getPositiveCommentForText } from '../contentProvider.js';
 
 /**
  * Прокручує стрічку декілька разів, попередньо авторизуючись.
  * @param {import('puppeteer').Page} page
  * @param {object} opts
- * @param {number} [opts.scanScrolls=20] скільки кроків прокручування зробити
+ * @param {number} [opts.scanScrolls=2] скільки кроків прокручування зробити
  * @returns {Promise<object>} результат
  */
-export async function run(page, { scanScrolls = 20 } = {}) {
+export async function run(page, { scanScrolls = 2 } = {}) {
   await tryStep('ensureThreadsReady', () => ensureThreadsReady(page), { page });
   await scrollPastSuggestionsIfPresent(page, { ensureLogin: false });
-  await slowScroll(page, scanScrolls);
+  await scrollAndReact(page, {
+    rounds: scanScrolls,
+    pause: 800,
+    keywords: BUSINESS_SEARCH_KEYWORDS,
+    doLike: true,
+    doComment: true,
+    generateComment: async (text) => await getPositiveCommentForText(text)
+  });
   return { ok: true };
 }
 

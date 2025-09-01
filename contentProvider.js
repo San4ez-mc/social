@@ -1,6 +1,7 @@
 import OpenAI from 'openai';
 import { logGptCommand } from './coach/coachAgent.js';
 import { MAX_CHARS, buildPromptForNewsRetry } from './prompts.js';
+import { LIMITS } from './constants/limits.js';
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -81,5 +82,32 @@ export async function getPostTextFromOpenAI(prompt, meta = {}) {
     }
 
     await logGptCommand('post-response', { text: txt, meta });
+    return txt;
+}
+
+/**
+ * Згенерувати короткий позитивний коментар до переданого тексту.
+ * Використовує OpenAI для формування відповіді.
+ * @param {string} source текст поста
+ * @returns {Promise<string>} позитивний коментар
+ */
+export async function getPositiveCommentForText(source) {
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const sys = 'Ти пишеш короткі позитивні коментарі українською до постів у Threads. Без хештегів.';
+    const prompt = `Напиши короткий позитивний коментар до такого поста:\n"${clampToLimit(source, LIMITS.commentMaxLen)}"`;
+    await logGptCommand('comment-request', { role: 'user', content: prompt });
+    const resp = await openai.chat.completions.create({
+        model,
+        messages: [
+            { role: 'system', content: sys },
+            { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+    });
+
+    let txt = resp?.choices?.[0]?.message?.content?.trim() || '';
+    txt = txt.replace(/^["“”]|["“”]$/g, '').trim();
+    txt = clampToLimit(txt, LIMITS.commentMaxLen);
+    await logGptCommand('comment-response', { text: txt });
     return txt;
 }

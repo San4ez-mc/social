@@ -28,6 +28,25 @@ export async function launchBrowser({ headless = false } = {}) {
 export async function newPageWithCookies(browser) {
     const page = await browser.newPage();
     await loadCookies(page, 'cookies_instagram.json').catch(() => { });
+    // Wrap native page.click to log selector and current URL
+    const origClick = page.click.bind(page);
+    page.click = async (selector, options) => {
+        try {
+            logStep(`CLICK ${selector} @ ${page.url()}`);
+        } catch { /* ignore logging errors */ }
+        return origClick(selector, options);
+    };
+
+    // Also log navigations via page.goto
+    const origGoto = page.goto.bind(page);
+    page.goto = async (...args) => {
+        const res = await origGoto(...args);
+        try {
+            logStep(`GOTO ${page.url()}`);
+        } catch { /* ignore logging errors */ }
+        return res;
+    };
+
     return page;
 }
 

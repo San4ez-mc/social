@@ -14,7 +14,7 @@ puppeteer.use(StealthPlugin());
 export async function launchBrowser({ headless = false } = {}) {
     const browser = await puppeteer.launch({
         headless,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--lang=uk-UA', '--start-fullscreen'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--lang=uk-UA', '--start-maximized'],
         defaultViewport: null
     });
     return browser;

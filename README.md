@@ -89,13 +89,7 @@ node postThreads.js --action=engage-keywords --likeMin=6 --likeMax=12 --commentM
 
 --headless=true — headless режим.
 
---otp=123456 — якщо Instagram попросить 2FA-код.
-
 Енви:
-
-IG_USER / INSTAGRAM_USER
-
-IG_PASS / INSTAGRAM_PASS
 
 THREADS_USERNAME
 

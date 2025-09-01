@@ -3,8 +3,8 @@
 
 export const THREADS_HOME_URLS = [
     "https://www.threads.com/login?hl=uk",
-    "https://www.threads.net/?hl=uk",
-    "https://threads.net/?hl=uk",
+    "https://www.threads.com/",
+    "https://threads.com/",
 ];
 
 // На головній (неавторизовано)

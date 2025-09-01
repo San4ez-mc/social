@@ -113,14 +113,19 @@ async function fillThreadsLoginForm(page, user, pass) {
 
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
-        page.click(sSel).catch(async () => {
-            await page.evaluate((re) => {
-                const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
-                const rx = new RegExp(re, 'i');
-                const btn = nodes.find(n => rx.test(n.textContent || ''));
-                if (btn) btn.click();
-            }, THREADS_LOGIN_ENTRY_TEXT.source);
-        })
+        (async () => {
+            const [btn] = await page.$x(sSel).catch(() => []);
+            if (btn) {
+                await btn.click().catch(() => { });
+            } else {
+                await page.evaluate((re) => {
+                    const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+                    const rx = new RegExp(re, 'i');
+                    const el = nodes.find(n => rx.test(n.textContent || ''));
+                    if (el) el.click();
+                }, THREADS_LOGIN_ENTRY_TEXT.source);
+            }
+        })()
     ]);
 
     await takeShot(page, 'threads_login_submit');

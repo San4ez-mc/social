@@ -17,13 +17,22 @@ function logStep(m) {
 function parseArgs(argv) {
     const args = {};
     argv.slice(2).forEach((a, i, arr) => {
-        if (a.startsWith("--")) {
-            const key = a.replace(/^--/, "");
-            const val = arr[i + 1] && !arr[i + 1].startsWith("--") ? arr[i + 1] : true;
-            args[key] = val;
+        if (!a.startsWith('--')) return;
+
+        const [key, inline] = a.replace(/^--/, '').split('=');
+        if (inline !== undefined) {
+            args[key] = inline;
+            return;
         }
+
+        const val = arr[i + 1] && !arr[i + 1].startsWith('--') ? arr[i + 1] : true;
+        args[key] = val;
     });
     return args;
+}
+
+function toBool(val) {
+    return val === true || val === 'true' || val === '1';
 }
 
 async function keepAlive(note = "Coach mode active — press Ctrl+C to exit") {
@@ -35,7 +44,7 @@ async function keepAlive(note = "Coach mode active — press Ctrl+C to exit") {
 async function main() {
     const argv = parseArgs(process.argv);
     const action = argv.action || "login.test";
-    const headless = argv.headless === "true";
+    const headless = toBool(argv.headless ?? process.env.HEADLESS);
 
     logStep(`Старт браузера (headless=${headless})`);
     const browser = await launchBrowser({ headless });

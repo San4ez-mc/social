@@ -7,6 +7,7 @@ import {
     screenshot as takeShot,
 } from "../helpers/logger.js";
 import { consultAndExecute } from "../coach/coachAgent.js";
+import { tryStep } from "../helpers/misc.js";
 import { getIgCreds } from "./auth.js";
 import {
     THREADS_HOME_URLS,
@@ -220,35 +221,31 @@ export async function ensureThreadsReady(page, opts = {}) {
     page.setDefaultTimeout(20000);
     page.setDefaultNavigationTimeout(30000);
 
-    logStep("INIT: preload cookies");
-    await loadCookies(page);
+    await tryStep("INIT: preload cookies", () => loadCookies(page), { page });
 
-    // 1) Перехід на Threads
-    logStep("Go to Threads (uk)");
-    await retry(async () => {
-        for (const url of THREADS_HOME_URLS) {
-            try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); return; }
-            catch { }
-        }
-        throw new Error("Threads home not reachable");
-    });
-    await takeShot(page, "home_loaded");
+    await tryStep("Go to Threads (uk)", async () => {
+        await retry(async () => {
+            for (const url of THREADS_HOME_URLS) {
+                try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); return; }
+                catch { }
+            }
+            throw new Error("Threads home not reachable");
+        });
+        await takeShot(page, "home_loaded");
+    }, { page });
 
-    // Якщо вже авторизовані — фініш
-    if (await isThreadsAuthorized(page)) {
+    const already = await tryStep("Check threads auth", () => isThreadsAuthorized(page), { page });
+    if (already) {
         logStep("Вже авторизовані на Threads");
         await takeShot(page, "threads_already_ready");
         return;
     }
 
-    // 2) Вхід на /login (головна)
-    await clickLoginEntryOnHome(page);
+    await tryStep("login entry on home", () => clickLoginEntryOnHome(page), { page });
 
-    // 3) На /login — SSO
-    await clickContinueWithInstagramOnLogin(page);
+    await tryStep("sso continue with instagram", () => clickContinueWithInstagramOnLogin(page), { page });
 
-    // 4) Instagram
-    await waitUrlHas(page, "instagram.com", 25000);
+    await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
 
     const tEnd = Date.now() + 70000;
     while (Date.now() < tEnd) {
@@ -314,9 +311,7 @@ export async function ensureThreadsReady(page, opts = {}) {
         await sleep(300);
     }
 
-    // 5) Перевірка фіду
-    logStep("Очікую повернення у Threads…");
-    await waitUrlHas(page, "threads.", 45000);
+    await tryStep("Очікую повернення у Threads…", () => waitUrlHas(page, "threads.", 45000), { page });
 
     const until = Date.now() + 70000;
     while (Date.now() < until) {
@@ -337,8 +332,7 @@ export async function ensureThreadsReady(page, opts = {}) {
         throw e;
     }
 
-    // 6) Cookies
-    await saveCookies(page);
+    await tryStep("save cookies", () => saveCookies(page), { page });
 }
 
 export default {

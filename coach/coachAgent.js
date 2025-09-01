@@ -196,3 +196,10 @@ Return improved "actions" JSON only.
         return { ok: true, plan, exec };
     }
 }
+
+export async function report({ stage, message, screenshotPath = '', context = null }) {
+    logError(`REPORT[${stage}]: ${message}`);
+    try {
+        appendCoachSolution({ ts: Date.now(), stage, message, screenshotPath, context, type: 'report' });
+    } catch { }
+}

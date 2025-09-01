@@ -49,7 +49,7 @@ async function main() {
     await saveCookies(page, 'cookies_instagram.json').catch(() => { });
 
     try {
-        if (action !== "login.test") throw new Error(`Unknown --action=${action}`);
+        if (!["login.test", "login"].includes(action)) throw new Error(`Unknown --action=${action}`);
 
         logStep("Запуск дії login.test");
         await ensureThreadsReady(page, {

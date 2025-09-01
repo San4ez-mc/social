@@ -147,14 +147,20 @@ async function clickLoginEntryOnHome(page) {
 /** На /login — клік по «Продовжити з Instagram» */
 async function clickContinueWithInstagramOnLogin(page) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
+    await retry(async () => await page.waitForSelector(THREADS_CONTINUE_WITH_IG, { visible: true }));
     let sso = await page.$(THREADS_CONTINUE_WITH_IG);
 
     if (!sso) {
-        sso = await page.evaluateHandle((reSource) => {
+        sso = await page.evaluateHandle((reSource, sel) => {
             const re = new RegExp(reSource, "i");
-            const btns = Array.from(document.querySelectorAll('[role="button"],a,button,div,span'));
-            return btns.find(b => (b.textContent || "").match(re)) || null;
-        }, THREADS_LOGIN_BUTTON_TEXT.source).catch(() => null);
+            const nodes = Array.from(document.querySelectorAll(`${sel},[role="button"],a,button,div,span`));
+            const isVisible = (el) => {
+                const r = el.getBoundingClientRect();
+                const cs = getComputedStyle(el);
+                return r.width > 4 && r.height > 4 && cs.visibility !== "hidden" && cs.display !== "none";
+            };
+            return nodes.find(n => (((n.textContent || "").match(re)) || n.matches(sel)) && isVisible(n)) || null;
+        }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
     }
 
     if (!sso) {

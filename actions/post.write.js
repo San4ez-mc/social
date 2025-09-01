@@ -19,11 +19,10 @@ export async function run(page, {
     type = 'story',
     hint = '',
     timeout = 25000,
-    IG_USER = 'ol.matsuk',
     image = null
 } = {}) {
 
-    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
+    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page), { page });
     await tryStep('openComposer', () => openComposer(page, timeout), { page });
     const text = await tryStep('generatePostText', () => generatePostText({ type, hint }), { context: { type, hint } });
     await tryStep('fillAndPost', () => fillAndPost(page, { text, image, timeout }), { page, context: { text, image } });

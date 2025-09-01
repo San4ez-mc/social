@@ -16,9 +16,8 @@ export async function run(page, {
     doComment = false,
     commentText = 'Класна думка!',
     timeout = 25000,
-    IG_USER = 'ol.matsuk',
 } = {}) {
-    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
+    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page), { page });
     const res = await tryStep('scrollAndReact', () => scrollAndReact(page, { rounds, pause, keywords, doLike, doComment, commentText }), { page });
     return { ok: true, ...res };
 }

@@ -1,7 +1,7 @@
 // core/browser.js
 import puppeteer from 'puppeteer-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { loadCookies, saveCookies, logStep } from '../utils.js';
+import { logStep } from '../utils.js';
 
 puppeteer.use(StealthPlugin());
 
@@ -21,13 +21,12 @@ export async function launchBrowser({ headless = false } = {}) {
 }
 
 /**
- * Створює сторінку, підвантажує cookies Instagram (якщо є).
+ * Створює сторінку без попереднього завантаження сторонніх cookies.
  * @param {import('puppeteer').Browser} browser
  * @returns {Promise<import('puppeteer').Page>}
  */
 export async function newPageWithCookies(browser) {
     const page = await browser.newPage();
-    await loadCookies(page, 'cookies_instagram.json').catch(() => { });
     // Wrap native page.click to log selector and current URL
     const origClick = page.click.bind(page);
     page.click = async (selector, options) => {
@@ -80,15 +79,4 @@ export async function newPageWithCookies(browser) {
     return page;
 }
 
-/**
- * Зберігає cookies Instagram і закриває браузер.
- * @param {import('puppeteer').Browser} browser
- * @param {import('puppeteer').Page} page
- */
-export async function persistAndClose(browser, page) {
-    try {
-        await saveCookies(page, 'cookies_instagram.json');
-        logStep('Cookies Instagram збережено');
-    } catch { }
-    await browser.close().catch(() => { });
-}
+// Функція збереження cookies не потрібна — цим опікується login.js

@@ -19,10 +19,9 @@ export async function run(page, {
     maxFollowsPerRun = 3,
     likesPerProfile = [3, 4], // діапазон
     timeout = 25000,
-    IG_USER = 'ol.matsuk'
 } = {}) {
 
-    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
+    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page), { page });
 
 
     await tryStep('open search', async () => {
@@ -78,11 +77,11 @@ export async function run(page, {
 
             await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => { });
             await page.waitForTimeout(600);
-            await page.goto('https://www.threads.net/', { waitUntil: 'domcontentloaded' }).catch(() => { });
+            await page.goto('https://www.threads.com/', { waitUntil: 'domcontentloaded' }).catch(() => { });
         }, { page, context: { query: q } });
     }
 
-    await tryStep('return home', () => page.goto('https://www.threads.net/', { waitUntil: 'domcontentloaded' }).catch(() => { }), { page });
+    await tryStep('return home', () => page.goto('https://www.threads.com/', { waitUntil: 'domcontentloaded' }).catch(() => { }), { page });
 
     return { ok: true, follows };
 }

@@ -97,6 +97,10 @@ IG_USER / INSTAGRAM_USER
 
 IG_PASS / INSTAGRAM_PASS
 
+THREADS_USERNAME
+
+THREADS_PASSWORD
+
 OPENAI_API_KEY (+ опційно OPENAI_MODEL, за замовчуванням gpt-4o-mini)
 
 (ми вже передаємо --no-sandbox у Chromium флагах)

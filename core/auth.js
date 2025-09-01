@@ -5,3 +5,10 @@ export function getIgCreds() {
     if (!user || !pass) throw new Error("[FATAL] IG_USER / IG_PASS відсутні у .env");
     return { user, pass };
 }
+
+export function getThreadsCreds() {
+    const user = (process.env.THREADS_USERNAME || "").trim();
+    const pass = (process.env.THREADS_PASSWORD || "").trim();
+    if (!user || !pass) throw new Error("[FATAL] THREADS_USERNAME / THREADS_PASSWORD відсутні у .env");
+    return { user, pass };
+}

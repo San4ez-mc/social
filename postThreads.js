@@ -15,7 +15,7 @@ import { run as runFeed, scrollPastSuggestionsIfPresent } from './actions/feedSc
 import { logStep } from './utils.js';
 
 const argv = yargs(hideBin(process.argv))
-    .option('action', { type: 'string', default: 'post', choices: ['post', 'find-entrepreneurs', 'feed-scan', 'skip-suggestions'] })
+    .option('action', { type: 'string', default: 'post', choices: ['post', 'find-entrepreneurs', 'feed-scan', 'skip-suggestions', 'random'] })
     .option('type', { type: 'string', choices: ['story', 'tip', 'news', 'humor'] })
     .option('text', { type: 'string' })
     .option('image', { type: 'string' })
@@ -36,17 +36,24 @@ const HEADLESS = argv.headless ?? (process.env.HEADLESS === 'true');
         await ensureThreadsReady(page);
 
         // 2) ДІЇ
-        if (argv.action === 'post') {
+        let action = argv.action;
+        if (action === 'random') {
+            const choices = ['post', 'find-entrepreneurs', 'feed-scan', 'skip-suggestions'];
+            action = choices[Math.floor(Math.random() * choices.length)];
+            logStep(`Випадково обрано дію: ${action}`);
+        }
+
+        if (action === 'post') {
             const input = await openComposer(page, argv.timeout); // забезпечує відкриття попапа і фокус
             await runPost(page, { ...argv, composerHandle: input });
-        } else if (argv.action === 'find-entrepreneurs') {
+        } else if (action === 'find-entrepreneurs') {
             await runFind(page, argv);
-        } else if (argv.action === 'feed-scan') {
+        } else if (action === 'feed-scan') {
             await runFeed(page, argv);
-        } else if (argv.action === 'skip-suggestions') {
+        } else if (action === 'skip-suggestions') {
             await scrollPastSuggestionsIfPresent(page);
         } else {
-            throw new Error(`Невідомий action: ${argv.action}`);
+            throw new Error(`Невідомий action: ${action}`);
         }
 
     } catch (err) {

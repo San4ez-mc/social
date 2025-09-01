@@ -148,6 +148,19 @@ async function clickLoginEntryOnHome(page) {
 /** На /login — клік по «Продовжити з Instagram» */
 async function clickContinueWithInstagramOnLogin(page) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
+    const logFoundSso = async (handle) => {
+        const { html, text } = await page.evaluate(el => ({
+            html: el.outerHTML,
+            text: el.innerText || "",
+        }), handle);
+        console.log('SSO outerHTML:', html);
+        console.log('SSO text:', text);
+        fs.writeFileSync(
+            path.resolve("коди сторінок", "threads_login_found_sso.html"),
+            `${html}\n<!-- text: ${text} -->`
+        );
+    };
+
     let btn = await page.$(THREADS_CONTINUE_WITH_IG).catch(() => null);
     console.log('Trying CSS THREADS_CONTINUE_WITH_IG:', Boolean(btn));
     if (btn) {
@@ -155,7 +168,8 @@ async function clickContinueWithInstagramOnLogin(page) {
             el.style.outline = '3px solid red';
             setTimeout(() => { el.style.outline = ''; }, 20000);
         }, btn);
-        await page.waitForTimeout(20000);
+        await logFoundSso(btn);
+        await sleep(20000);
     }
     let sso = btn;
 
@@ -171,12 +185,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node?.closest('div[role="button"]') || null;
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//svg[@aria-label="Instagram"]:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -193,12 +208,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node?.closest('div[role="button"]') || null;
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//span[normalize-space(text())="Продовжити з Instagram"]:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -215,12 +231,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node?.closest('div[role="button"]') || null;
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -232,12 +249,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node?.closest('div[role="button"]') || null;
         }).catch(() => null);
         console.log('Trying CSS div[role="button"] span + text includes:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -254,12 +272,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node;
         }).catch(() => null);
         console.log('Trying XPath //div[contains(@class,"x1i10hfl") and @role="button"]:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -276,12 +295,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return node?.closest('div[role="button"]') || null;
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//*[contains(text(),"Instagram")]:', Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -298,12 +318,13 @@ async function clickContinueWithInstagramOnLogin(page) {
             return nodes.find(n => (((n.textContent || '').match(re)) || n.matches(sel)) && isVisible(n));
         }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
         console.log("Trying role=button + 'Continue with Instagram' text:", Boolean(btn));
-        if (btn) {
+        if (btn?.asElement()) {
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await logFoundSso(btn);
+            await sleep(20000);
             sso = btn;
         }
     }

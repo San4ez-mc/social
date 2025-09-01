@@ -139,11 +139,13 @@ async function fillThreadsLoginForm(page, user, pass) {
     await page.waitForTimeout(2000);
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
+
         page.evaluate(el => {
             const prev = el.dataset.prevOutline;
             el.click();
             el.style.outline = prev;
         }, loginBtn)
+
     ]);
 
     await loginBtn.dispose();

@@ -1,0 +1,39 @@
+# Threads Puppeteer — Maintainers Guide
+
+## Мета
+Цей файл потрібен, щоб будь-яка правка вписувалась у структуру проєкту та **не дублювала** існуючі функції. Перед змінами — проглянь, у якому модулі це має жити.
+
+## Архітектура (модулі)
+- `core/` — низькорівневі дії: логін в IG, місток у Threads, композер.
+- `actions/` — сценарії, що обираються `--action` (post, find-entrepreneurs, feed-scan).
+- `ai/` — OpenAI клієнт і генерація контенту/коментарів.
+- `engage/` — дрібні взаємодії у фіді (лайки/коменти).
+- `constants/` — селектори, ліміти, ключові слова (реекспорт із `prompts.js`, щоб не плодити копії).
+- `helpers/` — реекспорт утиліт із існуючого `utils.js` (не мігруй без потреби).
+- `coach/` — інтеграція з CoachAgent (залишаємо як є).
+
+## Принципи
+1. **Не створюй нові утиліти**, якщо в `utils.js` вже є еквівалент.
+2. Селектори — в `constants/selectors.js`. Якщо ламається DOM Threads — правимо там.
+3. Ліміти та “магічні числа” — тільки в `constants/limits.js`.
+4. Ключові списки (keywords/comment bank) — **реекспортуємо** з `prompts.js`.
+5. Кожна функція має JSDoc: що робить, параметри, побічні ефекти.
+
+## Як додавати нову дію
+1. Створи файл у `actions/xyz.js` з `export async function run(page, argv)`.
+2. Використай `core/*` для переходів/композера, `engage/*` для лайків/коментів, `ai/*` для текстів.
+3. Під’єднай у головному файлі-оркестраторі (`postThreads.js` або його спрощеній версії).
+
+## Типові “болючі” точки
+- **Кнопка "Continue with Instagram"** — це `div[role="button"]` зі `span` “Continue with Instagram”. Використовуйте фолбеки (DOM click, mouse, Enter). Джерело DOM-прикладу: надісланий користувачем HTML. :contentReference[oaicite:1]{index=1}
+- Екран **"Back to Threads / Continue to Threads"** — спершу клікаємо картку IG_USER, далі “Continue/Allow/Not now”. Логіка вже реалізована в `core/threadsBridge.js`. Частково узгоджена з історичною логікою у твоєму `postThreads.js`. 
+
+## Код-стайл
+- Імена функцій — дієслово в camelCase.
+- У діях (`actions/*`) імперативний тон логів: `[STEP] ...`.
+- Максимум відкладених `await page.waitForTimeout(…)` — використовуй `waitForAny`.
+
+## Перевірка перед комітом
+- `node postThreads.js --action=post --type=tip`
+- `node postThreads.js --action=find-entrepreneurs --maxFollows=3`
+- `node postThreads.js --action=feed-scan --commentMax=3 --scanScrolls=50`

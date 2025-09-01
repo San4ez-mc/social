@@ -1,0 +1,192 @@
+1) Ціль
+
+Забезпечити стабільний е2е-флоу авторизації через Instagram SSO та створення постів у Threads. Будь-який виклик, крім login, починається і закінчується на сторінці стрічки Threads, у вже авторизованій сесії.
+
+2) Технології та стандарти
+
+Node.js + Puppeteer (без Playwright API — не використовуємо getByRole тощо).
+
+Puppeteer only-APIs: page.goto, page.waitForSelector, page.click, page.evaluate, page.cookies, page.setCookie, page.waitForNavigation({waitUntil:"networkidle0"}).
+
+Локалезалежний текст не використовувати у селекторах. Пріоритет: role=[button|link], атрибути (href, aria-label), стабільні частини URL, DOM-структура.
+
+Ретрай-політика: до 3 спроб на крок із backoff 0.5s → 1s → 2s.
+
+Таймаути (дефолт): page.setDefaultTimeout(20000), setDefaultNavigationTimeout(30000).
+
+3) Змінні середовища (.env)
+IG_USER=...
+IG_PASS=...
+THREADS_USER=ol.matsuk
+
+
+Жодних логінів/паролів у коді/логах/гіті.
+
+4) Структура (використовуємо вже існуючу)
+actions/
+ai/
+coach/
+constants/
+core/
+  auth.js
+  browser.js
+  feed.js
+  login.js   <-- реалізація нижче
+data/
+DOCS/
+helpers/
+logs/
+  steps.log
+runners/
+  threads.js
+screens/
+
+
+Нічого не переносимо, додаємо лише потрібні експорти та утиліти.
+
+5) Логи та діагностика
+
+Всі кроки пишемо у logs/steps.log (append). Формат:
+
+[ts][user][step] message
+[ts][user][error] message + короткий stack
+
+
+Ключові екрани зберігати у screens/ (іменування: YYYY-MM-DDTHH-mm-ss-SSSZ_<slug>.png).
+
+На будь-якій фатальній помилці викликати coachAgent.report({stage, message, screenshotPath, context}).
+
+6) Cookies
+
+Зберігаємо окремо:
+cookies.json — для threads.com
+cookies_instagram.json — для instagram.com
+
+Перед першим переходом підкладаємо кукі для обох доменів, якщо файли існують. Після успішної авторизації оновлюємо обидва файли.
+
+Якщо сесія прострочена — скрипт автоматично проходить SSO.
+
+7) Узгоджені селектори (денормалізовані)
+
+Приклади; у коді мають бути винесені в constants/selectors.js.
+
+Threads (threads.com/login | www.threads.com
+):
+
+Кнопка «Продовжити з Instagram»:
+a[href*="/login?"][href*="instagram"], або a[href="/login"] у правому сайдбарі сторінки входу Threads.
+(Сторінка логіну Threads підтверджує редірект у Instagram OIDC і канонічний домен threads.com.)
+
+Instagram SSO (instagram.com/accounts/login → OIDC → /threads/sso):
+
+Поля логіну: input[name="username"], input[name="password"]
+
+Submit: button[type="submit"]
+
+Вікно «Зберегти облікові дані?» — кнопка: текст Зберегти інформацію або role button у секції з заголовком Зберегти облікові дані? (обидва макети — з правою колонкою та з формою по центру — підтримуємо).
+
+Кнопка акаунта на екрані вибору профілю Threads (на боці Instagram): контейнер div[role="button"] із текстом/alt ol.matsuk.
+(Маршрут і атрибути сторінок Instagram/SSO зафіксовані у наданих дампах.)
+
+Feed Threads (кінцевий стан):
+
+Ознака авторизації: аватар-лінк на href^="/@ol.matsuk" і кнопка «Що нового?» у верхньому composer.
+
+8) Алгоритм login (єдиний публічний вхід — до стану Feed)
+
+Вхідні параметри: { page, user: THREADS_USER, headless? }
+Вихід: гарантовано відкрита вкладка Feed Threads у залОгиненій сесії.
+
+Підготовка браузера
+
+Відкрити нову сторінку, встановити таймаути.
+
+Підкласти кукі threads.com і instagram.com якщо є.
+
+Перейти на Threads (канонічно https://www.threads.com/?hl=uk)
+
+Якщо вже авторизовані (перевірка ознак Feed: composer «Що нового?» + профіль @ol.matsuk) — фініш.
+
+Натиснути “Продовжити з Instagram” на Threads
+
+Чекати редіректа у Instagram OIDC / /threads/sso.
+
+Логін у Instagram (два варіанти UI)
+
+Якщо є форма логіну:
+
+Ввести IG_USER, IG_PASS, submit.
+
+Якщо бачимо вибір акаунтів — клікнути по блоку з ol.matsuk.
+
+Якщо з’являється модальне вікно «Зберегти облікові дані?» — натиснути «Зберегти інформацію» (після — можливий редірект назад у Threads).
+
+Повернення у Threads
+
+На проміжному екрані Threads з правим сайдбаром — повторно натиснути «Продовжити з Instagram» (це очікувана частина потоку).
+
+Далі — екран вибору акаунту Threads → вибрати ol.matsuk.
+
+Верифікація кінцевого стану
+
+Дочекатися Feed: кнопка «Що нового?» + href^="/@ol.matsuk".
+
+Зберегти свіжі кукі для обох доменів.
+
+Помилки
+
+Кожен підкрок обгорнути у tryStep("name", fn) з логом початку/успіху/помилки, скріном та coachAgent.report на фейлі.
+
+Примітка: не робимо ручних “повернень назад” у Threads під час редіректів — браузер сам повертає в рамках SSO-ланцюжка; будь-які ручні goto у цей момент можуть «порвати» сесію.
+
+9) Підтримка двох макетів логіну Instagram
+
+Right-sidebar layout (стрічка IG зліва, форма справа) та Centered form — обидва визначаємо через наявність form#loginForm та/або input[name="username"].
+
+В обох випадках працюють однакові селектори інпутів/кнопок; різниця лише у контейнері.
+
+10) Контракти модулів
+core/login.js
+export async function ensureAuthorized(page, opts = {}) { /* реалізує Алгоритм 8 */ }
+
+export async function isOnThreadsFeed(page, expectedUser) { /* перевірка «Що нового?» + профіль */ }
+
+export async function clickContinueWithInstagramOnThreads(page) { /* стабільний селектор a[href*="/login"] */ }
+
+export async function instagramLoginIfNeeded(page, {user, pass}) { /* вводить креденшали або тисне на акаунт */ }
+
+export async function handleSaveCredentialsIfAppears(page) { /* натискає «Зберегти інформацію» */ }
+
+export async function chooseThreadsAccount(page, username) { /* кнопка акаунта ol.matsuk */ }
+
+runners/threads.js (уривок)
+import { ensureAuthorized } from '../core/login.js';
+import { withBrowser } from '../core/browser.js';
+
+async function main() {
+  const user = process.env.THREADS_USER;
+  await withBrowser(async page => {
+    await ensureAuthorized(page, { user, headless: false });
+    // інші runnables далі завжди стартують уже зі стрічки
+  });
+}
+
+core/browser.js
+
+Допоміжні: відкриття/закриття браузера, підкладання/збереження cookies, скріншоти, таймаути.
+
+coach/coachAgent.js
+
+report({stage, message, screenshotPath, context}) — телеметрія/чат-коуч.
+
+11) Правила для подальших екшенів
+
+Кожен actions/* робить assert(await isOnThreadsFeed(...)) на старті.
+
+Після дії (навіть якщо переходили в модалки/деталі) — повертаємося у стрічку перед return, щоб зберегти інваріант.
+
+12) Обмеження
+
+Якщо ввімкнено 2FA/чек-пойнти Meta — потік зупиняється з чітким логом/скріном і запрошенням ручної валідації.
+
+Антибот-захисти (rate-limits) — повільні кроки, рандомні затримки 200–600 мс між кліками/введенням.

@@ -47,6 +47,36 @@ export async function newPageWithCookies(browser) {
         return res;
     };
 
+    // Track any navigation (including redirects) and show current URL in-page
+    page.on('framenavigated', async frame => {
+        if (frame === page.mainFrame()) {
+            const url = frame.url();
+            try { logStep(`NAVIGATED ${url}`); } catch { /* ignore logging errors */ }
+            try {
+                await page.evaluate(current => {
+                    let box = document.getElementById('__nav_debug_box');
+                    if (!box) {
+                        box = document.createElement('div');
+                        box.id = '__nav_debug_box';
+                        Object.assign(box.style, {
+                            position: 'fixed',
+                            bottom: '0',
+                            left: '0',
+                            background: 'rgba(0,0,0,0.7)',
+                            color: '#fff',
+                            fontFamily: 'monospace',
+                            fontSize: '12px',
+                            padding: '2px 4px',
+                            zIndex: '2147483647'
+                        });
+                        document.body.appendChild(box);
+                    }
+                    box.textContent = current;
+                }, url).catch(() => { });
+            } catch { /* ignore evaluate errors */ }
+        }
+    });
+
     return page;
 }
 

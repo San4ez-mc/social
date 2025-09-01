@@ -20,6 +20,7 @@ export const THREADS_LOGIN_USER_INPUT = 'input[type="text"], input[type="email"]
 export const THREADS_LOGIN_PASS_INPUT = 'input[type="password"], input[name="password"], input[autocomplete="current-password"]';
 export const THREADS_LOGIN_SUBMIT = "(//button | //div[@role='button'] | //a[@role='button'])[ .//span[normalize-space()='Увійти'] or normalize-space()='Увійти' or contains(., 'Увійти') ]";
 
+
 // Ознаки авторизованого фіду
 export const THREADS_PROFILE_LINK = 'a[href^="/@"]';
 export const THREADS_COMPOSER_ANY = 'span,[role="textbox"],[contenteditable="true"]';

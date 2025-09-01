@@ -155,7 +155,7 @@ async function clickContinueWithInstagramOnLogin(page) {
             el.style.outline = '3px solid red';
             setTimeout(() => { el.style.outline = ''; }, 20000);
         }, btn);
-        await page.waitForTimeout(20000);
+        await sleep(20000);
     }
     let sso = btn;
 
@@ -176,7 +176,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -198,7 +198,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -220,7 +220,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -237,7 +237,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -259,7 +259,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -281,7 +281,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }
@@ -303,7 +303,7 @@ async function clickContinueWithInstagramOnLogin(page) {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
-            await page.waitForTimeout(20000);
+            await sleep(20000);
             sso = btn;
         }
     }

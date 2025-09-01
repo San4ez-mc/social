@@ -33,6 +33,8 @@ npm i
 
 node postThreads.js --action=<дія> [опції]
 
+Щоб випадково виконати одну з доступних дій (окрім логіну), використай `--action=random`.
+
 1) Публікація треда
 node postThreads.js --action=post [--type=story|tip|news] [--text="готовий текст"] [--image="шлях/до/фото.png"] [--headless=true]
 

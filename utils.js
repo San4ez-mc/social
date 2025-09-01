@@ -87,6 +87,9 @@ export async function waitForAny(page, selectors, { timeout = 10000, visible = t
 
 /** Клік по ПЕРШОМУ доступному селектору зі списку */
 export async function clickAny(page, selectors, { timeout = 8000, purpose = '' } = {}) {
+    try {
+        logStep(`CLICK_ANY ${selectors.join(', ')} @ ${page.url()}`);
+    } catch { /* ignore logging errors */ }
     const h = await waitForAny(page, selectors, { timeout, optional: true, visible: true, purpose });
     if (!h) return false;
     await h.click().catch(() => { });
@@ -102,6 +105,10 @@ export async function clickAny(page, selectors, { timeout = 8000, purpose = '' }
 export async function clickByText(page, a, b, { timeout = 8000 } = {}) {
     const tags = (b === undefined) ? 'button,[role="button"],a,div,span' : a;
     const text = (b === undefined) ? a : b;
+
+    try {
+        logStep(`CLICK_BY_TEXT ${text} @ ${page.url()}`);
+    } catch { /* ignore logging errors */ }
 
     const ok = await page.evaluate(({ tags, text }) => {
         const take = (s) => (s || '').replace(/\s+/g, ' ').trim();
@@ -125,6 +132,10 @@ export async function clickByText(page, a, b, { timeout = 8000 } = {}) {
 export async function clickByPartialText(page, a, b, { timeout = 8000 } = {}) {
     const tags = (b === undefined) ? 'button,[role="button"],a,div,span' : a;
     const partial = (b === undefined) ? a : b;
+
+    try {
+        logStep(`CLICK_BY_PARTIAL ${partial} @ ${page.url()}`);
+    } catch { /* ignore logging errors */ }
 
     const ok = await page.evaluate(({ tags, partial }) => {
         const norm = (s) => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();

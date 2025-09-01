@@ -2,7 +2,7 @@
 // Стабільні селектори без прив'язки до локалізації UI
 
 export const THREADS_HOME_URLS = [
-    "https://www.threads.com/?hl=uk",
+    "https://www.threads.com/login?hl=uk",
     "https://www.threads.net/?hl=uk",
     "https://threads.net/?hl=uk",
 ];

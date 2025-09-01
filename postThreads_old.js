@@ -176,7 +176,7 @@ async function continueWithInstagramOnThreads(page, timeout) {
     logStep('Перехід на threads.net');
     await page.goto('https://www.threads.net/', { waitUntil: 'domcontentloaded' }).catch(() => { });
     if (!(page.url().includes('threads.net') || page.url().includes('threads.com'))) {
-        await page.goto('https://www.threads.com/', { waitUntil: 'domcontentloaded' }).catch(() => { });
+        await page.goto('https://www.threads.com/login?hl=uk', { waitUntil: 'domcontentloaded' }).catch(() => { });
     }
 
     if (await isThreadsAuthed(page)) {

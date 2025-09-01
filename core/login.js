@@ -454,8 +454,16 @@ export async function ensureThreadsReady(page, opts = {}) {
 
                 await takeShot(page, "ig_login_filled");
 
+                await page.evaluate((selector) => {
+                    const btn = document.querySelector(selector) ||
+                        Array.from(document.querySelectorAll('button,[role="button"]'))
+                            .find(b => /log in|увійти/i.test(b.textContent || ""));
+                    if (btn) btn.style.boxShadow = '0 0 4px 2px #4ea5ff';
+                }, IG_SUBMIT_BTN);
+                await page.waitForTimeout(500);
+
                 await Promise.all([
-                    page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => { }),
+                    page.waitForNavigation({ waitUntil: "networkidle0", timeout: 45000 }).catch(() => { }),
                     page.click(IG_SUBMIT_BTN).catch(async () => {
                         await page.evaluate(() => {
                             const btn = Array.from(document.querySelectorAll('button,[role="button"]'))

@@ -1,7 +1,7 @@
 // actions/feed.engage.js
 import { isOnThreadsFeed } from '../core/login.js';
 import { scrollAndReact } from '../core/feed.js';
-import { BUSINESS_SEARCH_KEYWORDS } from '../coach_prompts/prompts.js';
+import { BUSINESS_SEARCH_KEYWORDS } from '../prompts.js';
 
 /**
  * Початок: головна стрічка Threads

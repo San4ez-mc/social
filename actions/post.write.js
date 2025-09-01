@@ -1,7 +1,7 @@
 // actions/post.write.js
 import { isOnThreadsFeed } from '../core/login.js';
 import { openComposer, fillAndPost } from '../core/composer.js';
-import { buildPromptForType, MAX_CHARS } from '../coach_prompts/prompts.js';
+import { buildPromptForType, MAX_CHARS } from '../prompts.js';
 
 // заглушка під реальний LLM-виклик; зараз формуємо текст із промпта
 async function generatePostText({ type = 'story', hint = '' } = {}) {

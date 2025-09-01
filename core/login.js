@@ -44,9 +44,7 @@ async function retry(fn, tries = 3, delays = [500, 1000, 2000]) {
 }
 async function clickHandle(page, handle) {
     if (!handle) throw new Error("clickHandle: empty handle");
-    const el = handle.asElement ? handle.asElement() : null;
-    if (el && el.click) return el.click();
-    return page.evaluate((node) => node && node.click && node.click(), handle);
+    return page.evaluate(node => node && node.click && node.click(), handle).catch(() => { });
 }
 
 /* ========= cookies ========= */
@@ -149,19 +147,89 @@ async function clickLoginEntryOnHome(page) {
 /** На /login — клік по «Продовжити з Instagram» */
 async function clickContinueWithInstagramOnLogin(page) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
-    await retry(async () => await page.waitForSelector(THREADS_CONTINUE_WITH_IG, { visible: true }));
-    let sso = await page.$(THREADS_CONTINUE_WITH_IG);
+    let sso = await page.$(THREADS_CONTINUE_WITH_IG).catch(() => null);
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
+            const node = document.evaluate(
+                '//div[@role="button"]//svg[@aria-label="Instagram"]',
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue;
+            const btn = node?.closest('div[role="button"]');
+            if (btn) btn.style.outline = '3px solid red';
+            return btn;
+        }).catch(() => null);
+    }
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
+            const node = document.evaluate(
+                '//div[@role="button"]//span[normalize-space(text())="Продовжити з Instagram"]',
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue;
+            const btn = node?.closest('div[role="button"]');
+            if (btn) btn.style.outline = '3px solid red';
+            return btn;
+        }).catch(() => null);
+    }
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
+            const node = Array.from(document.querySelectorAll('div[role="button"] span'))
+                .find(el => el.textContent && el.textContent.includes('Продовжити з Instagram'));
+            const btn = node?.closest('div[role="button"]');
+            if (btn) btn.style.outline = '3px solid red';
+            return btn;
+        }).catch(() => null);
+    }
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
+            const node = document.evaluate(
+                '//div[contains(@class,"x1i10hfl") and @role="button"]',
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue;
+            if (node) node.style.outline = '3px solid red';
+            return node;
+        }).catch(() => null);
+    }
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
+            const node = document.evaluate(
+                '//div[@role="button"]//*[contains(text(),"Instagram")]',
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue;
+            const btn = node?.closest('div[role="button"]');
+            if (btn) btn.style.outline = '3px solid red';
+            return btn;
+        }).catch(() => null);
+    }
 
     if (!sso) {
         sso = await page.evaluateHandle((reSource, sel) => {
-            const re = new RegExp(reSource, "i");
+            const re = new RegExp(reSource, 'i');
             const nodes = Array.from(document.querySelectorAll(`${sel},[role="button"],a,button,div,span`));
             const isVisible = (el) => {
                 const r = el.getBoundingClientRect();
                 const cs = getComputedStyle(el);
-                return r.width > 4 && r.height > 4 && cs.visibility !== "hidden" && cs.display !== "none";
+                return r.width > 4 && r.height > 4 && cs.visibility !== 'hidden' && cs.display !== 'none';
             };
-            return nodes.find(n => (((n.textContent || "").match(re)) || n.matches(sel)) && isVisible(n)) || null;
+            const node = nodes.find(n => (((n.textContent || '').match(re)) || n.matches(sel)) && isVisible(n));
+            if (node) node.style.outline = '3px solid red';
+            return node;
         }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
     }
 
@@ -170,7 +238,15 @@ async function clickContinueWithInstagramOnLogin(page) {
         fs.writeFileSync(path.resolve("коди сторінок", "threads_login_missing_sso.html"), dom);
         const shot = await takeShot(page, "missing_continue_with_instagram");
         const goal = "Find and click 'Continue with Instagram' button to start SSO";
-        const candidates = { tried: [THREADS_CONTINUE_WITH_IG, "role=button + 'Continue with Instagram' text"] };
+        const candidates = { tried: [
+            THREADS_CONTINUE_WITH_IG,
+            "XPath //div[@role=\"button\"]//svg[@aria-label=\"Instagram\"]",
+            "XPath //div[@role=\"button\"]//span[normalize-space(text())=\"Продовжити з Instagram\"]",
+            "CSS div[role=\"button\"] span + text includes",
+            "XPath //div[contains(@class,\"x1i10hfl\") and @role=\"button\"]",
+            "XPath //div[@role=\"button\"]//*[contains(text(),\"Instagram\")]",
+            "role=button + 'Continue with Instagram' text"
+        ] };
         const coach = await consultAndExecute({
             page, stage: "threads.sso", message: "Continue-with-Instagram button not found",
             goal, screenshotPath: shot, dom, candidates
@@ -183,9 +259,9 @@ async function clickContinueWithInstagramOnLogin(page) {
     }
 
     await takeShot(page, "before_click_sso");
-    await Promise.all([
-        page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => { }),
-        clickHandle(page, sso).catch(() => { }),
+    await Promise.allSettled([
+        page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 1000 }),
+        clickHandle(page, sso)
     ]);
     await takeShot(page, "after_click_sso");
 }
@@ -315,6 +391,8 @@ export async function ensureThreadsReady(page, opts = {}) {
     // 6) Cookies
     await saveCookies(page);
 }
+
+export { clickContinueWithInstagramOnLogin };
 
 export default {
     "login.test": async ({ page, user }) => ensureThreadsReady(page, { user }),

@@ -1,5 +1,6 @@
 // actions/search.follow.js
 import { ensureThreadsReady } from '../core/login.js';
+import { isOnThreadsFeed } from '../core/feed.js';
 import { waitForAny, clickAny } from '../utils.js';
 
 /**
@@ -20,6 +21,9 @@ export async function run(page, {
     IG_USER = 'ol.matsuk'
 } = {}) {
     await ensureThreadsReady(page, timeout, { IG_USER });
+    if (!(await isOnThreadsFeed(page, IG_USER))) {
+        throw new Error('Not on Threads feed');
+    }
 
     // Відкриваємо пошук
     await clickAny(page, [

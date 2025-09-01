@@ -8,10 +8,6 @@ import { launchBrowser, newPageWithCookies } from './core/browser.js';
 import { ensureThreadsReady } from './core/login.js';
 import { openComposer } from './core/composer.js';
 
-import { run as runPost } from './actions/post.js';
-import { run as runFind } from './actions/findEntrepreneurs.js';
-import { run as runFeed, scrollPastSuggestionsIfPresent } from './actions/feedScan.js';
-
 import { logStep } from './utils.js';
 
 const argv = yargs(hideBin(process.argv))
@@ -44,13 +40,17 @@ const HEADLESS = argv.headless ?? (process.env.HEADLESS === 'true');
         }
 
         if (action === 'post') {
+            const { run: runPost } = await import('./actions/post.js');
             const input = await openComposer(page, argv.timeout); // забезпечує відкриття попапа і фокус
             await runPost(page, { ...argv, composerHandle: input });
         } else if (action === 'find-entrepreneurs') {
+            const { run: runFind } = await import('./actions/findEntrepreneurs.js');
             await runFind(page, argv);
         } else if (action === 'feed-scan') {
+            const { run: runFeed } = await import('./actions/feedScan.js');
             await runFeed(page, argv);
         } else if (action === 'skip-suggestions') {
+            const { scrollPastSuggestionsIfPresent } = await import('./actions/feedScan.js');
             await scrollPastSuggestionsIfPresent(page);
         } else {
             throw new Error(`Невідомий action: ${action}`);

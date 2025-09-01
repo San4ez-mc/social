@@ -151,6 +151,12 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("threads login", () => fillThreadsLoginForm(page, threadsUser, threadsPass), { page });
 
+    if ((page.url() || "").includes("/login")) {
+        logStep("URL все ще /login, повторюю вхід");
+        await tryStep("threads login retry", () => fillThreadsLoginForm(page, threadsUser, threadsPass), { page });
+        await sleep(1000);
+    }
+
     await tryStep("Очікую завантаження фіду Threads…", () => waitUrlHas(page, "threads.", 45000), { page });
 
     const until = Date.now() + 70000;

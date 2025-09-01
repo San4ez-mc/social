@@ -1,5 +1,6 @@
 // actions/post.write.js
 import { ensureThreadsReady } from '../core/login.js';
+import { isOnThreadsFeed } from '../core/feed.js';
 import { openComposer, fillAndPost } from '../core/composer.js';
 import { buildPromptForType, MAX_CHARS } from '../coach_prompts/prompts.js';
 import { tryStep } from '../helpers/misc.js';
@@ -21,9 +22,11 @@ export async function run(page, {
     IG_USER = 'ol.matsuk',
     image = null
 } = {}) {
+
     await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
     await tryStep('openComposer', () => openComposer(page, timeout), { page });
     const text = await tryStep('generatePostText', () => generatePostText({ type, hint }), { context: { type, hint } });
     await tryStep('fillAndPost', () => fillAndPost(page, { text, image, timeout }), { page, context: { text, image } });
+
     return { ok: true, textUsed: text };
 }

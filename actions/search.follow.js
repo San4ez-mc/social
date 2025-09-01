@@ -1,5 +1,6 @@
 // actions/search.follow.js
 import { ensureThreadsReady } from '../core/login.js';
+import { isOnThreadsFeed } from '../core/feed.js';
 import { waitForAny, clickAny } from '../utils.js';
 import { tryStep } from '../helpers/misc.js';
 
@@ -20,7 +21,9 @@ export async function run(page, {
     timeout = 25000,
     IG_USER = 'ol.matsuk'
 } = {}) {
+
     await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
+
 
     await tryStep('open search', async () => {
         await clickAny(page, [

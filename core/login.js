@@ -191,6 +191,29 @@ async function clickContinueWithInstagramOnLogin(page) {
     await takeShot(page, "after_click_sso");
 }
 
+// Instagram може запропонувати зберегти інформацію
+export async function handleSaveCredentialsIfAppears(page) {
+    try {
+        const btn = await page.evaluateHandle(() => {
+            const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+            const target = nodes.find(n => /Зберегти інформацію/i.test(n.textContent || ""));
+            if (target) target.scrollIntoView({ block: 'center', inline: 'center' });
+            return target || null;
+        }).catch(() => null);
+
+        if (btn) {
+            logStep('Instagram: натискаю «Зберегти інформацію»');
+            await takeShot(page, 'ig_save_credentials');
+            await Promise.all([
+                page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => { }),
+                clickHandle(page, btn).catch(() => { }),
+            ]);
+        }
+    } catch (e) {
+        logError(`handleSaveCredentialsIfAppears failed: ${e?.message}`);
+    }
+}
+
 export async function ensureThreadsReady(page, opts = {}) {
     const { user: igUser, pass } = getIgCreds();
     const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
@@ -238,6 +261,7 @@ export async function ensureThreadsReady(page, opts = {}) {
 
         if (chosen) {
             logStep(`Вибрав акаунт: ${igUser}`);
+            await handleSaveCredentialsIfAppears(page);
             await waitUrlHas(page, "threads.", 45000);
             break;
         }
@@ -278,6 +302,7 @@ export async function ensureThreadsReady(page, opts = {}) {
             ]);
 
             await takeShot(page, "ig_login_submit");
+            await handleSaveCredentialsIfAppears(page);
             await waitUrlHas(page, "threads.", 45000);
             break;
         }

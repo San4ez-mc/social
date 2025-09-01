@@ -1,5 +1,19 @@
 // core/feed.js
 import { waitForAny, screenshotStep } from '../utils.js';
+import { THREADS_PROFILE_LINK, THREADS_COMPOSER_ANY } from '../constants/selectors.js';
+
+export async function isOnThreadsFeed(page, expectedUser) {
+    return await page
+        .evaluate(({ PROFILE, COMPOSER, expectedUser }) => {
+            const hasComposer = Array.from(document.querySelectorAll(COMPOSER))
+                .some(el => /Що нового\?|What’s new\?|What's new\?/i.test(el.textContent || ''));
+            const profile = document.querySelector(PROFILE);
+            const href = profile?.getAttribute('href') || '';
+            const userOk = expectedUser ? href.includes(`/${expectedUser}`) : true;
+            return hasComposer && userOk;
+        }, { PROFILE: THREADS_PROFILE_LINK, COMPOSER: THREADS_COMPOSER_ANY, expectedUser })
+        .catch(() => false);
+}
 
 export function matchesKeywords(text, keywords = []) {
     const t = (text || '').toLowerCase();

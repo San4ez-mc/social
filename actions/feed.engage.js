@@ -1,6 +1,6 @@
 // actions/feed.engage.js
 import { ensureThreadsReady } from '../core/login.js';
-import { scrollAndReact } from '../core/feed.js';
+import { isOnThreadsFeed, scrollAndReact } from '../core/feed.js';
 import { BUSINESS_SEARCH_KEYWORDS } from '../coach_prompts/prompts.js';
 import { tryStep } from '../helpers/misc.js';
 

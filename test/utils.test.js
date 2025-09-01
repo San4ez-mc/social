@@ -26,7 +26,8 @@ test('nap waits at least the specified time', async () => {
 
 test('logStepAsync writes messages to logs/steps.log', async () => {
   const logPath = path.resolve('logs/steps.log');
-  await fs.rm(path.dirname(logPath), { recursive: true, force: true });
+  // Remove only the log file to avoid Windows directory lock issues
+  await fs.rm(logPath, { force: true });
   await logStepAsync('test message');
   const content = await fs.readFile(logPath, 'utf8');
   assert.match(content, /test message/);

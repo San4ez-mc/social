@@ -103,11 +103,13 @@ async function isThreadsAuthorized(page) {
 
 /** На головній Threads — вхід на /login */
 async function clickLoginEntryOnHome(page) {
-    logStep("Шукаю вхід на /login на головній…");
+    const url = page.url();
+    logStep(`На сторінці ${url}: шукаю селектор ${THREADS_LOGIN_ANCHOR}`);
 
     let handle = await page.$(THREADS_LOGIN_ANCHOR);
 
     if (!handle) {
+        logStep(`На сторінці ${url}: не знайдено ${THREADS_LOGIN_ANCHOR}, шукаю role="button" з текстом /${THREADS_LOGIN_BUTTON_TEXT.source}/`);
         handle = await page.evaluateHandle((reSource) => {
             const re = new RegExp(reSource, "i");
             const nodes = Array.from(document.querySelectorAll('[role="button"],button,a,div,span'));
@@ -125,7 +127,7 @@ async function clickLoginEntryOnHome(page) {
         fs.writeFileSync(path.resolve("коди сторінок", "threads_home_missing_login.html"), dom);
         const shot = await takeShot(page, "coach_login_entry");
         const goal = "Find and click login/SSO button on Threads home to navigate to /login";
-        const candidates = { tried: [THREADS_LOGIN_ANCHOR, "role=button + login text"] };
+        const candidates = { tried: [THREADS_LOGIN_ANCHOR, `role=button + /${THREADS_LOGIN_BUTTON_TEXT.source}/`] };
         const coach = await consultAndExecute({
             page, stage: "threads.loginEntry", message: "Login entry not found",
             goal, screenshotPath: shot, dom, candidates

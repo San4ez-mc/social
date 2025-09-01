@@ -182,7 +182,8 @@ async function clickContinueWithInstagramOnLogin(page) {
 }
 
 export async function ensureThreadsReady(page, opts = {}) {
-    const wantedUser = opts.user || process.env.THREADS_USER || "ol.matsuk";
+    const { user: igUser, pass } = getIgCreds();
+    const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
 
     page.setDefaultTimeout(20000);
     page.setDefaultNavigationTimeout(30000);
@@ -216,7 +217,6 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     // 4) Instagram
     await waitUrlHas(page, "instagram.com", 25000);
-    const { user, pass } = (() => { try { return getIgCreds(); } catch { return { user: "", pass: "" }; } })();
 
     const tEnd = Date.now() + 70000;
     while (Date.now() < tEnd) {
@@ -228,10 +228,10 @@ export async function ensureThreadsReady(page, opts = {}) {
             const t = btns.find(b => (b.textContent || "").trim().toLowerCase().includes(nick.toLowerCase()));
             if (t) { t.scrollIntoView({ block: "center" }); t.click(); return true; }
             return false;
-        }, wantedUser).catch(() => false);
+        }, igUser).catch(() => false);
 
         if (chosen) {
-            logStep(`Вибрав акаунт: ${wantedUser}`);
+            logStep(`Вибрав акаунт: ${igUser}`);
             await waitUrlHas(page, "threads.", 45000);
             break;
         }
@@ -239,7 +239,7 @@ export async function ensureThreadsReady(page, opts = {}) {
         // (б) Форма логіну IG
         const hasForm = await page.$(IG_LOGIN_FORM);
         if (hasForm) {
-            if (!user || !pass) {
+            if (!igUser || !pass) {
                 const e = new Error("IG_USER / IG_PASS не задані для логіну в Instagram.");
                 e.keepOpen = true;
                 throw e;
@@ -250,7 +250,7 @@ export async function ensureThreadsReady(page, opts = {}) {
             await page.keyboard.down("Control").catch(() => { });
             await page.keyboard.press("A").catch(() => { });
             await page.keyboard.up("Control").catch(() => { });
-            await page.type(IG_USER_INPUT, user, { delay: 20 });
+            await page.type(IG_USER_INPUT, igUser, { delay: 20 });
 
             await page.focus(IG_PASS_INPUT).catch(() => { });
             await page.keyboard.down("Control").catch(() => { });

@@ -1,5 +1,5 @@
 // actions/post.write.js
-import { ensureThreadsReady } from '../core/login.js';
+import { login } from '../core/login.js';
 import { openComposer, fillAndPost } from '../core/composer.js';
 import { buildPromptForType, MAX_CHARS } from '../coach_prompts/prompts.js';
 
@@ -21,7 +21,7 @@ export async function run(page, {
     image = null
 } = {}) {
     // 1) гарантуємо Threads
-    await ensureThreadsReady(page, timeout, { IG_USER });
+    await login(page, { user: IG_USER });
 
     // 2) відкриваємо композер
     await openComposer(page, timeout);

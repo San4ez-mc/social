@@ -1,5 +1,5 @@
 // actions/feed.engage.js
-import { ensureThreadsReady } from '../core/login.js';
+import { login } from '../core/login.js';
 import { scrollAndReact } from '../core/feed.js';
 import { BUSINESS_SEARCH_KEYWORDS } from '../coach_prompts/prompts.js';
 
@@ -17,7 +17,7 @@ export async function run(page, {
     timeout = 25000,
     IG_USER = 'ol.matsuk',
 } = {}) {
-    await ensureThreadsReady(page, timeout, { IG_USER });
+    await login(page, { user: IG_USER });
     const res = await scrollAndReact(page, { rounds, pause, keywords, doLike, doComment, commentText });
     return { ok: true, ...res };
 }

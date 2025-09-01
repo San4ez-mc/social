@@ -190,7 +190,7 @@ async function clickContinueWithInstagramOnLogin(page) {
     await takeShot(page, "after_click_sso");
 }
 
-export async function ensureThreadsReady(page, opts = {}) {
+export async function login(page, opts = {}) {
     const { user: igUser, pass } = getIgCreds();
     const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
 
@@ -317,5 +317,5 @@ export async function ensureThreadsReady(page, opts = {}) {
 }
 
 export default {
-    "login.test": async ({ page, user }) => ensureThreadsReady(page, { user }),
+    "login.test": async ({ page, user }) => login(page, { user }),
 };

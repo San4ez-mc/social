@@ -3,7 +3,7 @@ import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
 import { launchBrowser, newPageWithCookies, persistAndClose } from "../core/browser.js";
-import { ensureThreadsReady } from "../core/login.js";
+import { login } from "../core/login.js";
 
 function logStep(m) {
     const line = `[${new Date().toISOString()}][runner][step] ${m}\n`;
@@ -45,7 +45,7 @@ async function main() {
         if (action !== "login.test") throw new Error(`Unknown --action=${action}`);
 
         logStep("Запуск дії login.test");
-        await ensureThreadsReady(page, {
+        await login(page, {
             user: argv.user || process.env.THREADS_USER || "ol.matsuk",
         });
 

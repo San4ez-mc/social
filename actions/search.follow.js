@@ -1,5 +1,5 @@
 // actions/search.follow.js
-import { ensureThreadsReady } from '../core/login.js';
+import { login } from '../core/login.js';
 import { waitForAny, clickAny } from '../utils.js';
 
 /**
@@ -19,7 +19,7 @@ export async function run(page, {
     timeout = 25000,
     IG_USER = 'ol.matsuk'
 } = {}) {
-    await ensureThreadsReady(page, timeout, { IG_USER });
+    await login(page, { user: IG_USER });
 
     // Відкриваємо пошук
     await clickAny(page, [

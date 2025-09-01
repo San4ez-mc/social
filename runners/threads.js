@@ -2,8 +2,10 @@
 import "dotenv/config";
 import fs from "node:fs";
 import path from "node:path";
-import { launchBrowser, newPageWithCookies, persistAndClose } from "../core/browser.js";
+import { launchBrowser, newPageWithCookies } from "../core/browser.js";
 import { ensureThreadsReady } from "../core/login.js";
+import { loginInstagram, getIgCreds } from "../core/auth.js";
+import { saveCookies } from "../utils.js";
 
 function logStep(m) {
     const line = `[${new Date().toISOString()}][runner][step] ${m}\n`;
@@ -41,6 +43,11 @@ async function main() {
     const browser = await launchBrowser({ headless });
     const page = await newPageWithCookies(browser);
 
+    // 1) Завжди виконуємо логін в Instagram перед будь-якими діями
+    const { user: IG_USER, pass: IG_PASS } = getIgCreds();
+    await loginInstagram(page, 20000, { user: IG_USER, pass: IG_PASS, otp: argv.otp });
+    await saveCookies(page, 'cookies_instagram.json').catch(() => { });
+
     try {
         if (action !== "login.test") throw new Error(`Unknown --action=${action}`);
 
@@ -51,9 +58,9 @@ async function main() {
 
         logStep("login.test завершено успішно");
         console.log("[RESULT] ✔ Авторизація завершена");
-        logStep("Збереження стану та закриття браузера");
-        await persistAndClose(browser, page).catch(() => { });
-        process.exit(0);
+        logStep("Сесія збережена, браузер залишено відкритим");
+        await saveCookies(page, 'cookies_instagram.json').catch(() => { });
+        await keepAlive();
     } catch (e) {
         if (e && e.keepOpen) {
             console.error("\n[COACH] Перехопив помилку зі збереженням браузера відкритим.");
@@ -66,7 +73,8 @@ async function main() {
         } else {
             console.error("[FATAL]", e?.stack || e?.message || e);
             logStep("Збереження стану та закриття браузера");
-            await persistAndClose(browser, page).catch(() => { });
+            await saveCookies(page, 'cookies_instagram.json').catch(() => { });
+            await browser.close().catch(() => { });
             process.exit(1);
         }
     }

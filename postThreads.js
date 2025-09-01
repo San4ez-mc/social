@@ -4,7 +4,7 @@ import 'dotenv/config';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 
-import { launchBrowser, newPageWithCookies, persistAndClose } from './core/browser.js';
+import { launchBrowser, newPageWithCookies } from './core/browser.js';
 import { loginInstagram } from './core/auth.js';
 import { continueWithInstagramOnThreads } from './core/threadsBridge.js';
 import { openComposer } from './core/composer.js';
@@ -13,7 +13,7 @@ import { run as runPost } from './actions/post.js';
 import { run as runFind } from './actions/findEntrepreneurs.js';
 import { run as runFeed, scrollPastSuggestionsIfPresent } from './actions/feedScan.js';
 
-import { logStep, waitForAny, saveCookies, loadCookies } from './utils.js';
+import { logStep, saveCookies, loadCookies } from './utils.js';
 
 const argv = yargs(hideBin(process.argv))
     .option('action', { type: 'string', default: 'post', choices: ['post', 'find-entrepreneurs', 'feed-scan', 'skip-suggestions'] })
@@ -33,17 +33,6 @@ if (!IG_USER || !IG_PASS) {
     console.error('[FATAL] IG_USER/IG_PASS не задані у .env'); process.exit(1);
 }
 
-// перевірка сесії за cookies
-async function isInstagramLoggedIn(page, timeout) {
-    await page.goto('https://www.instagram.com/', { waitUntil: 'domcontentloaded' }).catch(() => { });
-    const logged = await waitForAny(page, [
-        'a[href*="/accounts/edit"]',
-        'a[href*="/direct/inbox"]',
-        'nav[role="navigation"]'
-    ], { timeout: 4000, optional: true, purpose: 'Перевірка IG домашньої' });
-    return !!logged;
-}
-
 (async () => {
     logStep('Старт бота постингу в Threads');
     const browser = await launchBrowser({ headless: HEADLESS });
@@ -55,15 +44,10 @@ async function isInstagramLoggedIn(page, timeout) {
             console.log('[COOKIES] застосовані cookies_instagram.json (якщо існували)');
         }).catch(() => { });
 
-        // 1) IG login тільки якщо справді потрібно
-        const logged = await isInstagramLoggedIn(page, argv.timeout);
-        if (!logged) {
-            logStep('Перехід на instagram.com (логін)');
-            await loginInstagram(page, argv.timeout, { user: IG_USER, pass: IG_PASS, otp: argv.otp });
-            await saveCookies(page, 'cookies_instagram.json').catch(() => { });
-        } else {
-            console.log('[COOKIES] сесія валідна — логін пропущено');
-        }
+        // 1) Завжди виконуємо логін до Instagram
+        logStep('Перехід на instagram.com (логін)');
+        await loginInstagram(page, argv.timeout, { user: IG_USER, pass: IG_PASS, otp: argv.otp });
+        await saveCookies(page, 'cookies_instagram.json').catch(() => { });
 
         // 2) Threads SSO + вибір акаунта
         await continueWithInstagramOnThreads(page, argv.timeout, { IG_USER: IG_USER });
@@ -89,6 +73,7 @@ async function isInstagramLoggedIn(page, timeout) {
         console.error('[ERROR]', err?.stack || err?.message || err);
         try { const ts = new Date().toISOString().replace(/[:.]/g, '-'); await page.screenshot({ path: `error_${ts}.png`, fullPage: true }); } catch { }
     } finally {
-        await persistAndClose(browser, page);
+        // браузер спеціально НЕ закриваємо, щоб залишити сесію відкритою
+        try { await saveCookies(page, 'cookies_instagram.json'); } catch { }
     }
 })();

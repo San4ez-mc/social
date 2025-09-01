@@ -130,8 +130,14 @@ export async function ensureThreadsReady(page, opts = {}) {
     await tryStep("INIT: preload cookies", () => loadCookies(page), { page });
 
     await tryStep("Go to Threads login", async () => {
+        const loginUrl = 'https://www.threads.com/login?hl=uk';
         await retry(async () => {
-            await page.goto('https://www.threads.com/login?hl=uk', { waitUntil: "domcontentloaded", timeout: 30000 });
+            let resp = await page.goto(loginUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+            const status = resp?.status();
+            if (status === 500 || status === 505) {
+                await page.goto('https://www.threads.com', { waitUntil: "domcontentloaded", timeout: 30000 });
+                resp = await page.goto(loginUrl, { waitUntil: "domcontentloaded", timeout: 30000 });
+            }
         });
         await takeShot(page, "login_loaded");
     }, { page });

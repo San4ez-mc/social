@@ -182,6 +182,21 @@ async function clickContinueWithInstagramOnLogin(page) {
 
     if (!sso) {
         sso = await page.evaluateHandle(() => {
+            const btn = document.evaluate(
+                '//div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]',
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            ).singleNodeValue;
+            const target = btn?.closest('div[role="button"]');
+            if (target) target.style.outline = '3px solid red';
+            return target;
+        }).catch(() => null);
+    }
+
+    if (!sso) {
+        sso = await page.evaluateHandle(() => {
             const node = Array.from(document.querySelectorAll('div[role="button"] span'))
                 .find(el => el.textContent && el.textContent.includes('Продовжити з Instagram'));
             const btn = node?.closest('div[role="button"]');

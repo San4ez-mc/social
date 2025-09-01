@@ -13,7 +13,7 @@ export const THREADS_HOME_URLS = [
 export const THREADS_LOGIN_ANCHOR = 'a[href="/login"]';
 
 // На сторінці /login — SSO-посилання/кнопка
-export const THREADS_CONTINUE_WITH_IG = 'a[href*="/login"][href*="instagram"]';
+export const THREADS_CONTINUE_WITH_IG = 'a[href*="instagram.com"], a[href="/login"], button[data-testid="login"]';
 
 // Підказка для текстового пошуку (не CSS! — використовується у page.evaluate)
 export const THREADS_LOGIN_BUTTON_TEXT = /Продовжити з Instagram|Continue with Instagram/i;

@@ -10,20 +10,12 @@ export const THREADS_HOME_URLS = [
 // На головній (неавторизовано)
 
 // 1) canonical <a href="/login">
-// 2) будь-який видимий елемент з role="button", що виглядає як SSO Instagram
 export const THREADS_LOGIN_ANCHOR = 'a[href^="/login"]';
 
 // Текст посилання/кнопки входу
-
 export const THREADS_LOGIN_ENTRY_TEXT = /Увійти|Log in/i;
 
-// На сторінці /login — SSO-посилання/кнопка
-export const THREADS_CONTINUE_WITH_IG = 'a[href*="instagram.com"], a[href="/login"], button[data-testid="login"]';
-
-// Підказка для текстового пошуку (не CSS! — використовується у page.evaluate)
-export const THREADS_LOGIN_BUTTON_TEXT = /Продовжити з Instagram|Continue with Instagram/i;
-
-// Форма логіну Threads (fallback, якщо нема SSO)
+// Форма логіну Threads
 export const THREADS_LOGIN_USER_INPUT = 'input[type="text"], input[type="email"], input[name="username"], input[autocomplete="username"]';
 export const THREADS_LOGIN_PASS_INPUT = 'input[type="password"], input[name="password"], input[autocomplete="current-password"]';
 export const THREADS_LOGIN_SUBMIT = 'button[type="submit"], input[type="submit"], button';
@@ -32,15 +24,8 @@ export const THREADS_LOGIN_SUBMIT = 'button[type="submit"], input[type="submit"]
 export const THREADS_PROFILE_LINK = 'a[href^="/@"]';
 export const THREADS_COMPOSER_ANY = 'span,[role="textbox"],[contenteditable="true"]';
 
-// Instagram (форма логіну)
-export const IG_LOGIN_FORM = 'form#loginForm';
-export const IG_USER_INPUT = 'input[name="username"]';
-export const IG_PASS_INPUT = 'input[name="password"]';
-export const IG_SUBMIT_BTN = 'button[type="submit"]';
-
 // Шляхи для cookies
 export const COOKIES_THREADS_PATH = "cookies.json";
-export const COOKIES_IG_PATH = "cookies_instagram.json";
 
 // Узагальнені селектори для дій у Threads
 export const SELECTORS = {

@@ -8,7 +8,7 @@ Node.js + Puppeteer (без Playwright API — не використовуємо
 
 Puppeteer only-APIs: page.goto, page.waitForSelector, page.click, page.evaluate, page.cookies, page.setCookie, page.waitForNavigation({waitUntil:"networkidle0"}).
 
-Локалезалежний текст не використовувати у селекторах. Пріоритет: role=[button|link], атрибути (href, aria-label), стабільні частини URL, DOM-структура.
+Якщо у коді використовувати локалезалежний текст у селекторах - перекласти його на англійську, українську. Пріоритет: role=[button|link], атрибути (href, aria-label), стабільні частини URL, DOM-структура.
 
 Ретрай-політика: до 3 спроб на крок із backoff 0.5s → 1s → 2s.
 
@@ -54,7 +54,7 @@ screens/
 
 Ключові екрани зберігати у screens/ (іменування: YYYY-MM-DDTHH-mm-ss-SSSZ_<slug>.png).
 
-На будь-якій фатальній помилці викликати coachAgent.report({stage, message, screenshotPath, context}).
+На будь-якій фатальній помилці, а також, коли не вдається знайти потрібний елемент - викликати coachAgent.report({stage, message, screenshotPath, context}).
 
 6) Cookies
 

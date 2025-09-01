@@ -100,3 +100,18 @@ IG_PASS / INSTAGRAM_PASS
 OPENAI_API_KEY (+ опційно OPENAI_MODEL, за замовчуванням gpt-4o-mini)
 
 (ми вже передаємо --no-sandbox у Chromium флагах)
+
+Робочий селектор для кнопки ПРодовжити через інстаграм const btn = document.evaluate(
+  '//div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]',
+  document,
+  null,
+  XPathResult.FIRST_ORDERED_NODE_TYPE,
+  null
+).singleNodeValue;
+
+if (btn) {
+  btn.style.outline = "3px solid red"; // підсвітити
+  btn.click(); // натиснути
+} else {
+  console.log("Кнопку не знайдено");
+}

@@ -8,7 +8,7 @@ import {
 } from "../helpers/logger.js";
 import { consultAndExecute } from "../coach/coachAgent.js";
 import { tryStep } from "../helpers/misc.js";
-import { getIgCreds } from "./auth.js";
+import { getIgCreds, getThreadsCreds } from "./auth.js";
 import {
     THREADS_HOME_URLS,
     THREADS_LOGIN_ANCHOR,
@@ -431,8 +431,8 @@ export async function handleSaveCredentialsIfAppears(page) {
 }
 
 export async function ensureThreadsReady(page, opts = {}) {
-    const { user: igUser, pass } = getIgCreds();
-    const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
+    const { user: igUser, pass: igPass } = getIgCreds();
+    const { user: threadsUser, pass: threadsPass } = getThreadsCreds();
 
     page.setDefaultTimeout(20000);
     page.setDefaultNavigationTimeout(30000);
@@ -459,7 +459,7 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("login entry on home", () => clickLoginEntryOnHome(page), { page });
 
-    await tryStep("threads login or sso", () => clickContinueWithInstagramOnLogin(page, { user: igUser, pass }), { page });
+    await tryStep("threads login or sso", () => clickContinueWithInstagramOnLogin(page, { user: threadsUser, pass: threadsPass }), { page });
 
     await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
 
@@ -485,7 +485,7 @@ export async function ensureThreadsReady(page, opts = {}) {
         // (б) Форма логіну IG
         const hasForm = await page.$(IG_LOGIN_FORM);
         if (hasForm) {
-            if (!igUser || !pass) {
+            if (!igUser || !igPass) {
                 const e = new Error("IG_USER / IG_PASS не задані для логіну в Instagram.");
                 e.keepOpen = true;
                 throw e;
@@ -502,7 +502,7 @@ export async function ensureThreadsReady(page, opts = {}) {
             await page.keyboard.down("Control").catch(() => { });
             await page.keyboard.press("A").catch(() => { });
             await page.keyboard.up("Control").catch(() => { });
-            await page.type(IG_PASS_INPUT, pass, { delay: 20 });
+            await page.type(IG_PASS_INPUT, igPass, { delay: 20 });
 
             await takeShot(page, "ig_login_filled");
 

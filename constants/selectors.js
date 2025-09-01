@@ -26,7 +26,7 @@ export const THREADS_LOGIN_BUTTON_TEXT = /Продовжити з Instagram|Cont
 // Форма логіну Threads (fallback, якщо нема SSO)
 export const THREADS_LOGIN_USER_INPUT = 'input[type="text"], input[type="email"], input[name="username"], input[autocomplete="username"]';
 export const THREADS_LOGIN_PASS_INPUT = 'input[type="password"], input[name="password"], input[autocomplete="current-password"]';
-export const THREADS_LOGIN_SUBMIT = 'button[type="submit"], button';
+export const THREADS_LOGIN_SUBMIT = 'button[type="submit"], input[type="submit"], button';
 
 // Ознаки авторизованого фіду
 export const THREADS_PROFILE_LINK = 'a[href^="/@"]';

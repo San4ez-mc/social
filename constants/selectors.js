@@ -10,7 +10,10 @@ export const THREADS_HOME_URLS = [
 // На головній (неавторизовано)
 // 1) canonical <a href="/login">
 // 2) будь-який видимий елемент з role="button", що виглядає як SSO Instagram
-export const THREADS_LOGIN_ANCHOR = 'a[href="/login"]';
+export const THREADS_LOGIN_ANCHOR = 'a[href^="/login"]';
+
+// Текст посилання/кнопки входу
+export const THREADS_LOGIN_ENTRY_TEXT = /Увійти|Log in/i;
 
 // На сторінці /login — SSO-посилання/кнопка
 export const THREADS_CONTINUE_WITH_IG = 'a[href*="instagram.com"], a[href="/login"], button[data-testid="login"]';

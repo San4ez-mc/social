@@ -1,5 +1,5 @@
 // actions/search.follow.js
-import { ensureThreadsReady } from '../core/login.js';
+import { isOnThreadsFeed } from '../core/login.js';
 import { waitForAny, clickAny } from '../utils.js';
 
 /**
@@ -16,10 +16,11 @@ export async function run(page, {
     queries = ['підприємець', 'власник бізнесу', 'керівник', 'owner', 'entrepreneur', 'founder'],
     maxFollowsPerRun = 3,
     likesPerProfile = [3, 4], // діапазон
-    timeout = 25000,
     IG_USER = 'ol.matsuk'
 } = {}) {
-    await ensureThreadsReady(page, timeout, { IG_USER });
+    if (!(await isOnThreadsFeed(page, IG_USER))) {
+        throw new Error('Not on Threads feed');
+    }
 
     // Відкриваємо пошук
     await clickAny(page, [

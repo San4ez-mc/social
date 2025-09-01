@@ -1,5 +1,5 @@
 // actions/post.write.js
-import { ensureThreadsReady } from '../core/login.js';
+import { isOnThreadsFeed } from '../core/login.js';
 import { openComposer, fillAndPost } from '../core/composer.js';
 import { buildPromptForType, MAX_CHARS } from '../coach_prompts/prompts.js';
 
@@ -20,8 +20,9 @@ export async function run(page, {
     IG_USER = 'ol.matsuk',
     image = null
 } = {}) {
-    // 1) гарантуємо Threads
-    await ensureThreadsReady(page, timeout, { IG_USER });
+    if (!(await isOnThreadsFeed(page, IG_USER))) {
+        throw new Error('Not on Threads feed');
+    }
 
     // 2) відкриваємо композер
     await openComposer(page, timeout);

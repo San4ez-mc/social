@@ -91,20 +91,21 @@ async function saveCookies(page) {
 }
 
 /* ========= helpers ========= */
-async function isThreadsAuthorized(page) {
-    return await page.evaluate((PROFILE, SEL_COMPOSER) => {
+export async function isOnThreadsFeed(page, expectedUser) {
+    return await page.evaluate((PROFILE, SEL_COMPOSER, user) => {
         const hasComposer = Array.from(document.querySelectorAll(SEL_COMPOSER))
             .some(el => /Що нового\?|What’s new\?|What's new\?/i.test(el.textContent || ""));
-        const hasProfile = !!document.querySelector(PROFILE);
+        const profile = document.querySelector(PROFILE);
+        const hasProfile = !!profile && (!user || (profile.href || "").toLowerCase().includes(user.toLowerCase()));
         const postBtn = Array.from(document.querySelectorAll('button,[role="button"]'))
             .some(b => /Опублікувати|Post/i.test(b.textContent || ""));
-        return hasComposer || (hasProfile && postBtn);
-    }, THREADS_PROFILE_LINK, THREADS_COMPOSER_ANY).catch(() => false);
+        return hasComposer && hasProfile && postBtn;
+    }, THREADS_PROFILE_LINK, THREADS_COMPOSER_ANY, expectedUser).catch(() => false);
 }
 
-/** На головній Threads — вхід на /login */
-async function clickLoginEntryOnHome(page) {
-    logStep("Шукаю вхід на /login на головній…");
+/** На Threads — вхід через Instagram */
+export async function clickContinueWithInstagramOnThreads(page) {
+    logStep("На Threads: шукаю вхід через Instagram…");
 
     let handle = await page.$(THREADS_LOGIN_ANCHOR);
 
@@ -135,7 +136,7 @@ async function clickLoginEntryOnHome(page) {
             const e = new Error("Не знайшов лінк/кнопку входу на /login на головній Threads (coach failed).");
             e.keepOpen = true; e.coach = coach; throw e;
         }
-        return; // Коуч вже клікнув і, ймовірно, був навігейт
+        return; // коуч вже клікнув
     }
 
     await takeShot(page, "before_click_login_entry");
@@ -144,10 +145,7 @@ async function clickLoginEntryOnHome(page) {
         clickHandle(page, handle).catch(() => { }),
     ]);
     await takeShot(page, "after_click_login_entry");
-}
 
-/** На /login — клік по «Продовжити з Instagram» */
-async function clickContinueWithInstagramOnLogin(page) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
     await retry(async () => await page.waitForSelector(THREADS_CONTINUE_WITH_IG, { visible: true }));
     let sso = await page.$(THREADS_CONTINUE_WITH_IG);
@@ -190,65 +188,39 @@ async function clickContinueWithInstagramOnLogin(page) {
     await takeShot(page, "after_click_sso");
 }
 
-export async function ensureThreadsReady(page, opts = {}) {
-    const { user: igUser, pass } = getIgCreds();
-    const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
+export async function chooseThreadsAccount(page, username) {
+    return await page.evaluate((nick) => {
+        const btns = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'));
+        const t = btns.find(b => (b.textContent || "").trim().toLowerCase().includes(nick.toLowerCase()));
+        if (t) { t.scrollIntoView({ block: "center" }); t.click(); return true; }
+        return false;
+    }, username).catch(() => false);
+}
 
-    page.setDefaultTimeout(20000);
-    page.setDefaultNavigationTimeout(30000);
+export async function handleSaveCredentialsIfAppears(page) {
+    const handle = await page.evaluateHandle(() => {
+        const re = /save (login )?info|зберегти (інформацію|дані)/i;
+        const btns = Array.from(document.querySelectorAll('button,[role="button"]'));
+        return btns.find(b => re.test(b.textContent || "")) || null;
+    }).catch(() => null);
+    if (handle) await clickHandle(page, handle).catch(() => { });
+}
 
-    logStep("INIT: preload cookies");
-    await loadCookies(page);
-
-    // 1) Перехід на Threads
-    logStep("Go to Threads (uk)");
-    await retry(async () => {
-        for (const url of THREADS_HOME_URLS) {
-            try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); return; }
-            catch { }
-        }
-        throw new Error("Threads home not reachable");
-    });
-    await takeShot(page, "home_loaded");
-
-    // Якщо вже авторизовані — фініш
-    if (await isThreadsAuthorized(page)) {
-        logStep("Вже авторизовані на Threads");
-        await takeShot(page, "threads_already_ready");
-        return;
-    }
-
-    // 2) Вхід на /login (головна)
-    await clickLoginEntryOnHome(page);
-
-    // 3) На /login — SSO
-    await clickContinueWithInstagramOnLogin(page);
-
-    // 4) Instagram
-    await waitUrlHas(page, "instagram.com", 25000);
-
+export async function instagramLoginIfNeeded(page, { user, pass }) {
     const tEnd = Date.now() + 70000;
     while (Date.now() < tEnd) {
         const url = page.url() || "";
 
-        // (а) Вибір акаунта
-        const chosen = await page.evaluate((nick) => {
-            const btns = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'));
-            const t = btns.find(b => (b.textContent || "").trim().toLowerCase().includes(nick.toLowerCase()));
-            if (t) { t.scrollIntoView({ block: "center" }); t.click(); return true; }
-            return false;
-        }, igUser).catch(() => false);
-
+        const chosen = await chooseThreadsAccount(page, user);
         if (chosen) {
-            logStep(`Вибрав акаунт: ${igUser}`);
+            logStep(`Вибрав акаунт: ${user}`);
             await waitUrlHas(page, "threads.", 45000);
             break;
         }
 
-        // (б) Форма логіну IG
         const hasForm = await page.$(IG_LOGIN_FORM);
         if (hasForm) {
-            if (!igUser || !pass) {
+            if (!user || !pass) {
                 const e = new Error("IG_USER / IG_PASS не задані для логіну в Instagram.");
                 e.keepOpen = true;
                 throw e;
@@ -259,7 +231,7 @@ export async function ensureThreadsReady(page, opts = {}) {
             await page.keyboard.down("Control").catch(() => { });
             await page.keyboard.press("A").catch(() => { });
             await page.keyboard.up("Control").catch(() => { });
-            await page.type(IG_USER_INPUT, igUser, { delay: 20 });
+            await page.type(IG_USER_INPUT, user, { delay: 20 });
 
             await page.focus(IG_PASS_INPUT).catch(() => { });
             await page.keyboard.down("Control").catch(() => { });
@@ -281,21 +253,58 @@ export async function ensureThreadsReady(page, opts = {}) {
             ]);
 
             await takeShot(page, "ig_login_submit");
+            await handleSaveCredentialsIfAppears(page);
             await waitUrlHas(page, "threads.", 45000);
             break;
         }
 
-        if (/threads\.(net|com)/i.test(url)) break; // вже редіректимося назад
+        if (/threads\.(net|com)/i.test(url)) break;
         await sleep(300);
     }
+}
 
-    // 5) Перевірка фіду
+export async function ensureAuthorized(page, opts = {}) {
+    const { user: igUser, pass } = getIgCreds();
+    const wantedUser = opts.user || igUser || process.env.THREADS_USER || "ol.matsuk";
+
+    page.setDefaultTimeout(20000);
+    page.setDefaultNavigationTimeout(30000);
+
+    logStep("INIT: preload cookies");
+    await loadCookies(page);
+
+    // 1) Перехід на Threads
+    logStep("Go to Threads (uk)");
+    await retry(async () => {
+        for (const url of THREADS_HOME_URLS) {
+            try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); return; }
+            catch { }
+        }
+        throw new Error("Threads home not reachable");
+    });
+    await takeShot(page, "home_loaded");
+
+    // Якщо вже авторизовані — фініш
+    if (await isOnThreadsFeed(page, wantedUser)) {
+        logStep("Вже авторизовані на Threads");
+        await takeShot(page, "threads_already_ready");
+        return;
+    }
+
+    // Вхід через Instagram
+    await clickContinueWithInstagramOnThreads(page);
+
+    // Instagram
+    await waitUrlHas(page, "instagram.com", 25000);
+    await instagramLoginIfNeeded(page, { user: igUser, pass });
+
+    // Перевірка фіду
     logStep("Очікую повернення у Threads…");
     await waitUrlHas(page, "threads.", 45000);
 
     const until = Date.now() + 70000;
     while (Date.now() < until) {
-        if (await isThreadsAuthorized(page)) {
+        if (await isOnThreadsFeed(page, wantedUser)) {
             await takeShot(page, "threads_ready");
             logStep("Threads готовий (авторизовано, є «Що нового?»)");
             break;
@@ -303,7 +312,7 @@ export async function ensureThreadsReady(page, opts = {}) {
         await sleep(500);
     }
 
-    if (!(await isThreadsAuthorized(page))) {
+    if (!(await isOnThreadsFeed(page, wantedUser))) {
         const dom = await page.content();
         fs.writeFileSync(path.resolve("коди сторінок", "threads_not_authorized.html"), dom);
         await takeShot(page, "threads_not_authorized");
@@ -312,10 +321,9 @@ export async function ensureThreadsReady(page, opts = {}) {
         throw e;
     }
 
-    // 6) Cookies
     await saveCookies(page);
 }
 
 export default {
-    "login.test": async ({ page, user }) => ensureThreadsReady(page, { user }),
+    "login.test": async ({ page, user }) => ensureAuthorized(page, { user }),
 };

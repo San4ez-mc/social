@@ -13,6 +13,10 @@ import {
     THREADS_HOME_URLS,
     THREADS_LOGIN_ANCHOR,
     THREADS_LOGIN_BUTTON_TEXT,
+    THREADS_LOGIN_ENTRY_TEXT,
+    THREADS_LOGIN_USER_INPUT,
+    THREADS_LOGIN_PASS_INPUT,
+    THREADS_LOGIN_SUBMIT,
     THREADS_CONTINUE_WITH_IG,
     THREADS_PROFILE_LINK,
     THREADS_COMPOSER_ANY,
@@ -109,7 +113,7 @@ async function clickLoginEntryOnHome(page) {
     let handle = await page.$(THREADS_LOGIN_ANCHOR);
 
     if (!handle) {
-        logStep(`На сторінці ${url}: не знайдено ${THREADS_LOGIN_ANCHOR}, шукаю role="button" з текстом /${THREADS_LOGIN_BUTTON_TEXT.source}/`);
+        logStep(`На сторінці ${url}: не знайдено ${THREADS_LOGIN_ANCHOR}, шукаю role="button" з текстом /${THREADS_LOGIN_ENTRY_TEXT.source}/`);
         handle = await page.evaluateHandle((reSource) => {
             const re = new RegExp(reSource, "i");
             const nodes = Array.from(document.querySelectorAll('[role="button"],button,a,div,span'));
@@ -119,7 +123,7 @@ async function clickLoginEntryOnHome(page) {
                 return r.width > 4 && r.height > 4 && cs.visibility !== "hidden" && cs.display !== "none";
             };
             return nodes.find(n => n.textContent && re.test(n.textContent) && isVisible(n)) || null;
-        }, THREADS_LOGIN_BUTTON_TEXT.source).catch(() => null);
+        }, THREADS_LOGIN_ENTRY_TEXT.source).catch(() => null);
     }
 
     if (!handle) {
@@ -127,7 +131,7 @@ async function clickLoginEntryOnHome(page) {
         fs.writeFileSync(path.resolve("коди сторінок", "threads_home_missing_login.html"), dom);
         const shot = await takeShot(page, "coach_login_entry");
         const goal = "Find and click login/SSO button on Threads home to navigate to /login";
-        const candidates = { tried: [THREADS_LOGIN_ANCHOR, `role=button + /${THREADS_LOGIN_BUTTON_TEXT.source}/`] };
+        const candidates = { tried: [THREADS_LOGIN_ANCHOR, `role=button + /${THREADS_LOGIN_ENTRY_TEXT.source}/`] };
         const coach = await consultAndExecute({
             page, stage: "threads.loginEntry", message: "Login entry not found",
             goal, screenshotPath: shot, dom, candidates
@@ -319,7 +323,46 @@ async function findSsoButton(page) {
     return sso;
 }
 
-async function clickContinueWithInstagramOnLogin(page) {
+async function fillThreadsLoginForm(page, user, pass) {
+    if (!user || !pass) return false;
+    const uSel = THREADS_LOGIN_USER_INPUT;
+    const pSel = THREADS_LOGIN_PASS_INPUT;
+    const sSel = THREADS_LOGIN_SUBMIT;
+    const u = await page.$(uSel).catch(() => null);
+    const p = await page.$(pSel).catch(() => null);
+    if (!u || !p) return false;
+
+    await page.focus(uSel).catch(() => { });
+    await page.keyboard.down('Control').catch(() => { });
+    await page.keyboard.press('A').catch(() => { });
+    await page.keyboard.up('Control').catch(() => { });
+    await page.type(uSel, user, { delay: 20 }).catch(() => { });
+
+    await page.focus(pSel).catch(() => { });
+    await page.keyboard.down('Control').catch(() => { });
+    await page.keyboard.press('A').catch(() => { });
+    await page.keyboard.up('Control').catch(() => { });
+    await page.type(pSel, pass, { delay: 20 }).catch(() => { });
+
+    await takeShot(page, 'threads_login_filled');
+
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
+        page.click(sSel).catch(async () => {
+            await page.evaluate((re) => {
+                const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+                const rx = new RegExp(re, 'i');
+                const btn = nodes.find(n => rx.test(n.textContent || ''));
+                if (btn) btn.click();
+            }, THREADS_LOGIN_ENTRY_TEXT.source);
+        })
+    ]);
+
+    await takeShot(page, 'threads_login_submit');
+    return true;
+}
+
+async function clickContinueWithInstagramOnLogin(page, creds = {}) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
     let sso = null;
     const until = Date.now() + 15000;
@@ -329,6 +372,9 @@ async function clickContinueWithInstagramOnLogin(page) {
     }
 
     if (!sso) {
+        const filled = await fillThreadsLoginForm(page, creds.user, creds.pass);
+        if (filled) return;
+
         const dom = await page.content();
         fs.writeFileSync(path.resolve("коди сторінок", "threads_login_missing_sso.html"), dom);
         const shot = await takeShot(page, "missing_continue_with_instagram");
@@ -413,7 +459,7 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("login entry on home", () => clickLoginEntryOnHome(page), { page });
 
-    await tryStep("sso continue with instagram", () => clickContinueWithInstagramOnLogin(page), { page });
+    await tryStep("threads login or sso", () => clickContinueWithInstagramOnLogin(page, { user: igUser, pass }), { page });
 
     await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
 

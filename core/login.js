@@ -29,6 +29,14 @@ async function waitUrlHas(page, substr, timeout = 30000) {
     }
     return false;
 }
+async function waitUrlNot(page, substr, timeout = 30000) {
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeout) {
+        if (!((page.url() || "").includes(substr))) return true;
+        await sleep(200);
+    }
+    return false;
+}
 async function retry(fn, tries = 3, delays = [500, 1000, 2000]) {
     let lastErr;
     for (let i = 0; i < tries; i++) {
@@ -157,7 +165,15 @@ export async function ensureThreadsReady(page, opts = {}) {
         await sleep(1000);
     }
 
-    await tryStep("Очікую завантаження фіду Threads…", () => waitUrlHas(page, "threads.", 45000), { page });
+    await tryStep("Очікую завантаження фіду Threads…", () => waitUrlNot(page, "/login", 45000), { page });
+
+    if ((page.url() || "").includes("/login")) {
+        logStep("Після очікування все ще на /login");
+        await takeShot(page, "threads_not_authorized");
+        const e = new Error("Threads: після логіну залишилися на сторінці логіну.");
+        e.keepOpen = true;
+        throw e;
+    }
 
     const until = Date.now() + 70000;
     while (Date.now() < until) {

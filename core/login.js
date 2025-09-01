@@ -146,8 +146,7 @@ async function clickLoginEntryOnHome(page) {
 }
 
 /** На /login — клік по «Продовжити з Instagram» */
-async function clickContinueWithInstagramOnLogin(page) {
-    logStep("На /login: шукаю «Продовжити з Instagram»…");
+async function findSsoButton(page) {
     let sso = await page.$(THREADS_CONTINUE_WITH_IG).catch(() => null);
 
     if (!sso) {
@@ -247,6 +246,18 @@ async function clickContinueWithInstagramOnLogin(page) {
             if (node) node.style.outline = '3px solid red';
             return node;
         }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
+    }
+
+    return sso;
+}
+
+async function clickContinueWithInstagramOnLogin(page) {
+    logStep("На /login: шукаю «Продовжити з Instagram»…");
+    let sso = null;
+    const until = Date.now() + 15000;
+    while (!sso && Date.now() < until) {
+        sso = await findSsoButton(page);
+        if (!sso) await page.waitForTimeout(500).catch(() => { });
     }
 
     if (!sso) {

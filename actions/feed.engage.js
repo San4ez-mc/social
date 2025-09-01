@@ -1,6 +1,6 @@
 // actions/feed.engage.js
 import { ensureThreadsReady } from '../core/login.js';
-import { scrollAndReact } from '../core/feed.js';
+import { isOnThreadsFeed, scrollAndReact } from '../core/feed.js';
 import { BUSINESS_SEARCH_KEYWORDS } from '../coach_prompts/prompts.js';
 
 /**
@@ -18,6 +18,9 @@ export async function run(page, {
     IG_USER = 'ol.matsuk',
 } = {}) {
     await ensureThreadsReady(page, timeout, { IG_USER });
+    if (!(await isOnThreadsFeed(page, IG_USER))) {
+        throw new Error('Not on Threads feed');
+    }
     const res = await scrollAndReact(page, { rounds, pause, keywords, doLike, doComment, commentText });
     return { ok: true, ...res };
 }

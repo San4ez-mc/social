@@ -203,3 +203,9 @@ export async function report({ stage, message, screenshotPath = '', context = nu
         appendCoachSolution({ ts: Date.now(), stage, message, screenshotPath, context, type: 'report' });
     } catch { }
 }
+
+export async function logGptCommand(name, ...details) {
+    try {
+        appendCoachSolution({ ts: Date.now(), type: 'gpt', name, details });
+    } catch { /* ignore */ }
+}

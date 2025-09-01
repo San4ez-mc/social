@@ -107,10 +107,10 @@ async function isThreadsAuthorized(page) {
 
 async function findSsoButton(page) {
     let sso = await page.$(THREADS_CONTINUE_WITH_IG).catch(() => null);
-
+    let btn = null;
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = document.evaluate(
                 '//div[@role="button"]//svg[@aria-label="Instagram"]',
                 document,
@@ -119,7 +119,7 @@ async function findSsoButton(page) {
                 null
             ).singleNodeValue;
             return node?.closest('div[role="button"]') || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying XPath //div[@role="button"]//svg[@aria-label="Instagram"]:', Boolean(btn));
         if (btn) {
 
@@ -134,7 +134,7 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = document.evaluate(
                 '//div[@role="button"]//span[normalize-space(text())="Продовжити з Instagram"]',
                 document,
@@ -143,7 +143,7 @@ async function findSsoButton(page) {
                 null
             ).singleNodeValue;
             return node?.closest('div[role="button"]') || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying XPath //div[@role="button"]//span[normalize-space(text())="Продовжити з Instagram"]:', Boolean(btn));
         if (btn) {
 
@@ -158,7 +158,7 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = document.evaluate(
                 '//div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]',
                 document,
@@ -167,7 +167,7 @@ async function findSsoButton(page) {
                 null
             ).singleNodeValue;
             return node?.closest('div[role="button"]') || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying XPath //div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]:', Boolean(btn));
         if (btn) {
 
@@ -182,11 +182,11 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = Array.from(document.querySelectorAll('div[role="button"] span'))
                 .find(el => el.textContent && el.textContent.includes('Продовжити з Instagram'));
             return node?.closest('div[role="button"]') || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying CSS div[role="button"] span + text includes:', Boolean(btn));
         if (btn) {
 
@@ -201,7 +201,7 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = document.evaluate(
                 '//div[contains(@class,"x1i10hfl") and @role="button"]',
                 document,
@@ -210,7 +210,7 @@ async function findSsoButton(page) {
                 null
             ).singleNodeValue;
             return node;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying XPath //div[contains(@class,"x1i10hfl") and @role="button"]:', Boolean(btn));
         if (btn) {
 
@@ -225,7 +225,7 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle(() => {
+        btn = (await page.evaluateHandle(() => {
             const node = document.evaluate(
                 '//div[@role="button"]//*[contains(text(),"Instagram")]',
                 document,
@@ -234,7 +234,7 @@ async function findSsoButton(page) {
                 null
             ).singleNodeValue;
             return node?.closest('div[role="button"]') || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
         console.log('Trying XPath //div[@role="button"]//*[contains(text(),"Instagram")]:', Boolean(btn));
         if (btn) {
 
@@ -249,7 +249,7 @@ async function findSsoButton(page) {
     }
 
     if (!sso) {
-        btn = await page.evaluateHandle((reSource, sel) => {
+        btn = (await page.evaluateHandle((reSource, sel) => {
             const re = new RegExp(reSource, 'i');
             const nodes = Array.from(document.querySelectorAll(`${sel},[role="button"],a,button,div,span`));
             const isVisible = (el) => {
@@ -258,7 +258,7 @@ async function findSsoButton(page) {
                 return r.width > 4 && r.height > 4 && cs.visibility !== 'hidden' && cs.display !== 'none';
             };
             return nodes.find(n => (((n.textContent || '').match(re)) || n.matches(sel)) && isVisible(n));
-        }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
+        }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null))?.asElement();
         console.log("Trying role=button + 'Continue with Instagram' text:", Boolean(btn));
         if (btn) {
 
@@ -324,7 +324,13 @@ async function clickContinueWithInstagramOnLogin(page, creds = {}) {
     const until = Date.now() + 15000;
     while (!sso && Date.now() < until) {
         sso = await findSsoButton(page);
-        if (!sso) await page.waitForTimeout(500).catch(() => { });
+        if (!sso) {
+            if (typeof page.waitForTimeout === 'function') {
+                await page.waitForTimeout(500).catch(() => { });
+            } else {
+                await sleep(500);
+            }
+        }
     }
 
     if (!sso) {
@@ -363,12 +369,12 @@ async function clickContinueWithInstagramOnLogin(page, creds = {}) {
 // Instagram може запропонувати зберегти інформацію
 export async function handleSaveCredentialsIfAppears(page) {
     try {
-        const btn = await page.evaluateHandle(() => {
+        const btn = (await page.evaluateHandle(() => {
             const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
             const target = nodes.find(n => /Зберегти інформацію/i.test(n.textContent || ""));
             if (target) target.scrollIntoView({ block: 'center', inline: 'center' });
             return target || null;
-        }).catch(() => null);
+        }).catch(() => null))?.asElement();
 
         if (btn) {
             logStep('Instagram: натискаю «Зберегти інформацію»');

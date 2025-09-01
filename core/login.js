@@ -1,5 +1,6 @@
 // core/login.js
 import fs from "node:fs";
+import path from "node:path";
 import {
     logStep,
     logError,
@@ -122,6 +123,7 @@ async function clickLoginEntryOnHome(page) {
 
     if (!handle) {
         const dom = await page.content();
+        fs.writeFileSync(path.resolve("коди сторінок", "threads_home_missing_login.html"), dom);
         const shot = await takeShot(page, "coach_login_entry");
         const goal = "Find and click login/SSO button on Threads home to navigate to /login";
         const candidates = { tried: [THREADS_LOGIN_ANCHOR, "role=button + login text"] };
@@ -159,6 +161,7 @@ async function clickContinueWithInstagramOnLogin(page) {
 
     if (!sso) {
         const dom = await page.content();
+        fs.writeFileSync(path.resolve("коди сторінок", "threads_login_missing_sso.html"), dom);
         const shot = await takeShot(page, "missing_continue_with_instagram");
         const goal = "Find and click 'Continue with Instagram' button to start SSO";
         const candidates = { tried: [THREADS_CONTINUE_WITH_IG, "role=button + 'Continue with Instagram' text"] };
@@ -295,6 +298,8 @@ export async function ensureThreadsReady(page, opts = {}) {
     }
 
     if (!(await isThreadsAuthorized(page))) {
+        const dom = await page.content();
+        fs.writeFileSync(path.resolve("коди сторінок", "threads_not_authorized.html"), dom);
         await takeShot(page, "threads_not_authorized");
         const e = new Error("Threads: не бачу авторизованої головної (композер/Опублікувати/аватар).");
         e.keepOpen = true;

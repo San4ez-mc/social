@@ -14,6 +14,10 @@ import {
     THREADS_LOGIN_ANCHOR,
     THREADS_LOGIN_ENTRY_TEXT,
     THREADS_LOGIN_BUTTON_TEXT,
+    THREADS_LOGIN_ENTRY_TEXT,
+    THREADS_LOGIN_USER_INPUT,
+    THREADS_LOGIN_PASS_INPUT,
+    THREADS_LOGIN_SUBMIT,
     THREADS_CONTINUE_WITH_IG,
     THREADS_PROFILE_LINK,
     THREADS_COMPOSER_ANY,
@@ -320,7 +324,46 @@ async function findSsoButton(page) {
     return sso;
 }
 
-async function clickContinueWithInstagramOnLogin(page) {
+async function fillThreadsLoginForm(page, user, pass) {
+    if (!user || !pass) return false;
+    const uSel = THREADS_LOGIN_USER_INPUT;
+    const pSel = THREADS_LOGIN_PASS_INPUT;
+    const sSel = THREADS_LOGIN_SUBMIT;
+    const u = await page.$(uSel).catch(() => null);
+    const p = await page.$(pSel).catch(() => null);
+    if (!u || !p) return false;
+
+    await page.focus(uSel).catch(() => { });
+    await page.keyboard.down('Control').catch(() => { });
+    await page.keyboard.press('A').catch(() => { });
+    await page.keyboard.up('Control').catch(() => { });
+    await page.type(uSel, user, { delay: 20 }).catch(() => { });
+
+    await page.focus(pSel).catch(() => { });
+    await page.keyboard.down('Control').catch(() => { });
+    await page.keyboard.press('A').catch(() => { });
+    await page.keyboard.up('Control').catch(() => { });
+    await page.type(pSel, pass, { delay: 20 }).catch(() => { });
+
+    await takeShot(page, 'threads_login_filled');
+
+    await Promise.all([
+        page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
+        page.click(sSel).catch(async () => {
+            await page.evaluate((re) => {
+                const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+                const rx = new RegExp(re, 'i');
+                const btn = nodes.find(n => rx.test(n.textContent || ''));
+                if (btn) btn.click();
+            }, THREADS_LOGIN_ENTRY_TEXT.source);
+        })
+    ]);
+
+    await takeShot(page, 'threads_login_submit');
+    return true;
+}
+
+async function clickContinueWithInstagramOnLogin(page, creds = {}) {
     logStep("На /login: шукаю «Продовжити з Instagram»…");
     let sso = null;
     const until = Date.now() + 15000;
@@ -330,6 +373,9 @@ async function clickContinueWithInstagramOnLogin(page) {
     }
 
     if (!sso) {
+        const filled = await fillThreadsLoginForm(page, creds.user, creds.pass);
+        if (filled) return;
+
         const dom = await page.content();
         fs.writeFileSync(path.resolve("коди сторінок", "threads_login_missing_sso.html"), dom);
         const shot = await takeShot(page, "missing_continue_with_instagram");
@@ -414,7 +460,7 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("login entry on home", () => clickLoginEntryOnHome(page), { page });
 
-    await tryStep("sso continue with instagram", () => clickContinueWithInstagramOnLogin(page), { page });
+    await tryStep("threads login or sso", () => clickContinueWithInstagramOnLogin(page, { user: igUser, pass }), { page });
 
     await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
 

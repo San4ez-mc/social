@@ -23,14 +23,26 @@ export const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a, b) => 
 
 /** Очікування будь-якого селектора (+ підтримка text=/text= і :has-text()) */
 export async function waitForAny(page, selectors, { timeout = 10000, visible = true, optional = true, purpose = '' } = {}) {
+    // Унікалізація, щоб точно спробувати КОЖЕН селектор
+    const uniq = Array.from(new Set((selectors || []).map(s => (s || '').toString())));
+    const tried = new Set();
     const start = Date.now();
 
     // Пошук видимого елемента за ТОЧНИМ текстом (без XPath, крос-версійно)
-    async function queryByTextExact(txt) {
-        const handle = await page.evaluateHandle((needle, wantVisible) => {
+    async function queryByTextExact(frame, txt) {
+        const handle = await frame.evaluateHandle((needle, wantVisible) => {
             const take = s => (s || '').replace(/\s+/g, ' ').trim();
             const nNeedle = take(needle);
-            const nodes = Array.from(document.querySelectorAll('button,[role="button"],a,div,span'));
+
+            const collect = (root) => {
+                const nodes = Array.from(root.querySelectorAll('button,[role="button"],a,div,span'));
+                for (const el of root.querySelectorAll('*')) {
+                    if (el.shadowRoot) nodes.push(...collect(el.shadowRoot));
+                }
+                return nodes;
+            };
+
+            const nodes = collect(document);
             const el = nodes.find(n => take(n.innerText || n.textContent) === nNeedle && (!wantVisible || n.offsetParent !== null));
             return el || null;
         }, txt.trim(), visible).catch(() => null);
@@ -40,11 +52,20 @@ export async function waitForAny(page, selectors, { timeout = 10000, visible = t
     }
 
     // Пошук видимого елемента за ЧАСТКОВИМ текстом (без XPath)
-    async function queryByTextContains(txt) {
-        const handle = await page.evaluateHandle((needle, wantVisible) => {
+    async function queryByTextContains(frame, txt) {
+        const handle = await frame.evaluateHandle((needle, wantVisible) => {
             const norm = s => (s || '').toLowerCase().replace(/\s+/g, ' ').trim();
             const p = norm(needle);
-            const nodes = Array.from(document.querySelectorAll('button,[role="button"],a,div,span'));
+
+            const collect = (root) => {
+                const nodes = Array.from(root.querySelectorAll('button,[role="button"],a,div,span'));
+                for (const el of root.querySelectorAll('*')) {
+                    if (el.shadowRoot) nodes.push(...collect(el.shadowRoot));
+                }
+                return nodes;
+            };
+
+            const nodes = collect(document);
             const el = nodes.find(n => norm(n.innerText || n.textContent).includes(p) && (!wantVisible || n.offsetParent !== null));
             return el || null;
         }, txt.trim(), visible).catch(() => null);
@@ -53,35 +74,59 @@ export async function waitForAny(page, selectors, { timeout = 10000, visible = t
         return el;
     }
 
+    // Пошук елемента за CSS у т.ч. у shadow DOM
+    async function queryByCss(frame, sel) {
+        const handle = await frame.evaluateHandle((selector, wantVisible) => {
+            const deepQuery = (root) => {
+                const el = root.querySelector(selector);
+                if (el && (!wantVisible || el.offsetParent !== null)) return el;
+                for (const n of root.querySelectorAll('*')) {
+                    if (n.shadowRoot) {
+                        const found = deepQuery(n.shadowRoot);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            };
+            return deepQuery(document);
+        }, sel, visible).catch(() => null);
+        const el = handle?.asElement?.() || null;
+        if (!el && handle) { try { await handle.dispose(); } catch { } }
+        return el;
+    }
+
     while (Date.now() - start <= timeout) {
-        for (const rawSel of selectors) {
-            const sel = (rawSel || '').toString();
+        for (const sel of uniq) {
+            tried.add(sel);
+            const frames = [page, ...page.frames()];
+            for (const frame of frames) {
+                // Підтримка Playwright-подібних селекторів `text=...` і `text/...`
+                if (sel.startsWith('text=') || sel.startsWith('text/')) {
+                    const needle = sel.slice(5);
+                    const h = await queryByTextExact(frame, needle);
+                    if (h) { if (purpose) logStep(`✔ Знайшов: ${purpose} (${sel})`); return h; }
+                    continue;
+                }
+                // Підтримка псевдо `:has-text("...")`
+                const m = sel.match(/:has-text\("([^"]+)"\)/);
+                if (m) {
+                    const needle = m[1];
+                    const h = await queryByTextContains(frame, needle);
+                    if (h) { if (purpose) logStep(`✔ Знайшов: ${purpose} (${sel})`); return h; }
+                    continue;
+                }
 
-            // Підтримка Playwright-подібних селекторів `text=...` і `text/...`
-            if (sel.startsWith('text=') || sel.startsWith('text/')) {
-                const needle = sel.slice(5);
-                const h = await queryByTextExact(needle);
+                const h = await queryByCss(frame, sel);
                 if (h) { if (purpose) logStep(`✔ Знайшов: ${purpose} (${sel})`); return h; }
-                continue;
             }
-            // Підтримка псевдо `:has-text("...")`
-            const m = sel.match(/:has-text\("([^"]+)"\)/);
-            if (m) {
-                const needle = m[1];
-                const h = await queryByTextContains(needle);
-                if (h) { if (purpose) logStep(`✔ Знайшов: ${purpose} (${sel})`); return h; }
-                continue;
-            }
-
-            // Звичайний CSS
-            try {
-                const h = await page.waitForSelector(sel, { timeout: 400, visible });
-                if (h) { if (purpose) logStep(`✔ Знайшов: ${purpose} (${sel})`); return h; }
-            } catch { /* keep looping */ }
         }
         await nap(120);
     }
-    if (!optional) throw new Error(`Не знайшов потрібний елемент: ${purpose || selectors.join(', ')}`);
+
+    if (tried.size < uniq.length) {
+        logStep(`⚠️ Не всі селектори були перевірені: ${uniq.filter(s => !tried.has(s)).join(', ')}`);
+    }
+    if (!optional) throw new Error(`Не знайшов потрібний елемент: ${purpose || uniq.join(', ')}`);
     return null;
 }
 

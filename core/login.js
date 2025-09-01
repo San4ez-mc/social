@@ -111,41 +111,44 @@ async function fillThreadsLoginForm(page, user, pass) {
 
     await takeShot(page, 'threads_login_filled');
 
+    const handle = await page.evaluateHandle((xpathSel, re) => {
+        const evaluateXPath = (sel) => {
+            try {
+                const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                return result.singleNodeValue;
+            } catch {
+                return null;
+            }
+        };
+        const btn = evaluateXPath(xpathSel);
+        const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+        const rx = new RegExp(re, 'i');
+        const el = btn || nodes.find(n => rx.test(n.textContent || ''));
+        return el || null;
+    }, sSel, THREADS_LOGIN_ENTRY_TEXT.source);
+    const loginBtn = handle.asElement();
+    if (!loginBtn) {
+        await handle.dispose();
+        throw new Error('Login submit button not found');
+    }
+
+    await page.evaluate(el => {
+        el.dataset.prevOutline = el.style.outline || '';
+        el.style.outline = '3px solid red';
+    }, loginBtn);
+    await page.waitForTimeout(2000);
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
-        (async () => {
-            const found = await page.evaluate((xpathSel, re) => {
-                return new Promise(resolve => {
-                    const evaluateXPath = (sel) => {
-                        try {
-                            const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                            return result.singleNodeValue;
-                        } catch {
-                            return null;
-                        }
-                    };
-                    const btn = evaluateXPath(xpathSel);
-                    const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
-                    const rx = new RegExp(re, 'i');
-                    const el = btn || nodes.find(n => rx.test(n.textContent || ''));
-                    if (el) {
-                        const prevOutline = el.style.outline;
-                        el.style.outline = '3px solid red';
-                        setTimeout(() => {
-                            el.style.outline = prevOutline;
-                            el.click();
-                            resolve(true);
-                        }, 2000);
-                    } else {
-                        resolve(false);
-                    }
-                });
-            }, sSel, THREADS_LOGIN_ENTRY_TEXT.source);
-            if (!found) {
-                throw new Error('Login submit button not found');
-            }
-        })()
+
+        page.evaluate(el => {
+            const prev = el.dataset.prevOutline;
+            el.click();
+            el.style.outline = prev;
+        }, loginBtn)
+
     ]);
+
+    await loginBtn.dispose();
 
     await takeShot(page, 'threads_login_submit');
     return true;

@@ -151,11 +151,13 @@ async function clickContinueWithInstagramOnLogin(page) {
     let btn = await page.$(THREADS_CONTINUE_WITH_IG).catch(() => null);
     console.log('Trying CSS THREADS_CONTINUE_WITH_IG:', Boolean(btn));
     if (btn) {
+
         await page.evaluate((el) => {
             el.style.outline = '3px solid red';
             setTimeout(() => { el.style.outline = ''; }, 20000);
         }, btn);
         await sleep(20000);
+
     }
     let sso = btn;
 
@@ -172,11 +174,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//svg[@aria-label="Instagram"]:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -194,11 +198,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//span[normalize-space(text())="Продовжити з Instagram"]:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -216,11 +222,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//span[contains(text(), "Продовжити з Instagram")]:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -233,11 +241,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying CSS div[role="button"] span + text includes:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -255,11 +265,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying XPath //div[contains(@class,"x1i10hfl") and @role="button"]:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -277,11 +289,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }).catch(() => null);
         console.log('Trying XPath //div[@role="button"]//*[contains(text(),"Instagram")]:', Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }
@@ -299,11 +313,13 @@ async function clickContinueWithInstagramOnLogin(page) {
         }, THREADS_LOGIN_BUTTON_TEXT.source, THREADS_CONTINUE_WITH_IG).catch(() => null);
         console.log("Trying role=button + 'Continue with Instagram' text:", Boolean(btn));
         if (btn) {
+
             await page.evaluate((el) => {
                 el.style.outline = '3px solid red';
                 setTimeout(() => { el.style.outline = ''; }, 20000);
             }, btn);
             await sleep(20000);
+
             sso = btn;
         }
     }

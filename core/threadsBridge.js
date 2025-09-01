@@ -1,3 +1,4 @@
+// core/threadsBridge.js
 import { logStep, waitForAny, clickAny, clickByPartialText, handleDomFailure } from '../utils.js';
 
 async function isThreadsAuthed(page) {
@@ -34,7 +35,7 @@ async function pickIgAccountOnContinue(page, timeout, IG_USER) {
     return !!clickedFallback;
 }
 
-export async function continueWithInstagramOnThreads(page, timeout, { IG_USER } = {}) {
+export async function continueWithInstagramOnThreads(page, timeout = 20000, { IG_USER } = {}) {
     logStep('Перехід на threads.net');
     await page.goto('https://www.threads.net/', { waitUntil: 'domcontentloaded' }).catch(() => { });
     if (!(page.url().includes('threads.net') || page.url().includes('threads.com'))) {
@@ -54,18 +55,16 @@ export async function continueWithInstagramOnThreads(page, timeout, { IG_USER } 
 
     if (!clicked) {
         clicked = await page.evaluate(() => {
-            const buttons = Array.from(document.querySelectorAll('div[role="button"]'));
-            const target = buttons.find(div => {
-                const span = div.querySelector('span');
-                const txt = (span?.innerText || span?.textContent || '').trim().toLowerCase();
-                return txt === 'continue with instagram';
-            });
-            if (!target) return false;
-            try {
-                target.scrollIntoView({ block: 'center', inline: 'center' });
-                target.click();
-                return true;
-            } catch { return false; }
+            const buttons = Array.from(document.querySelectorAll('div[role="button"],button'));
+            const target = buttons.find(b => /Continue with Instagram/i.test(b.textContent || ''));
+            if (target) {
+                try {
+                    target.scrollIntoView({ block: 'center', inline: 'center' });
+                    target.click();
+                    return true;
+                } catch { return false; }
+            }
+            return false;
         }).catch(() => false);
     }
 
@@ -74,17 +73,13 @@ export async function continueWithInstagramOnThreads(page, timeout, { IG_USER } 
         if (handle) {
             const box = await handle.boundingBox().catch(() => null);
             if (box) {
-                await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-                await page.mouse.down();
-                await page.mouse.up();
+                await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
                 clicked = true;
             }
         }
     }
 
-    if (!clicked) {
-        try { await page.keyboard.press('Enter'); } catch { }
-    }
+    if (!clicked) { try { await page.keyboard.press('Enter'); } catch { } }
 
     await Promise.race([
         waitForAny(page, [
@@ -101,7 +96,7 @@ export async function continueWithInstagramOnThreads(page, timeout, { IG_USER } 
     if (page.url().includes('instagram.com') && /Continue to Threads/i.test(pageContent)) {
         const picked = await pickIgAccountOnContinue(page, timeout, IG_USER);
         if (!picked) {
-            await handleDomFailure(page, `На сторінці \"Continue to Threads\" не вдалося натиснути картку акаунта ${IG_USER}.`);
+            await handleDomFailure(page, `На сторінці "Continue to Threads" не вдалося натиснути картку акаунта ${IG_USER}.`);
         }
     }
 
@@ -116,4 +111,3 @@ export async function continueWithInstagramOnThreads(page, timeout, { IG_USER } 
 }
 
 export default continueWithInstagramOnThreads;
-

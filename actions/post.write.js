@@ -2,6 +2,7 @@
 import { ensureThreadsReady } from '../core/login.js';
 import { openComposer, fillAndPost } from '../core/composer.js';
 import { buildPromptForType, MAX_CHARS } from '../coach_prompts/prompts.js';
+import { tryStep } from '../helpers/misc.js';
 
 // заглушка під реальний LLM-виклик; зараз формуємо текст із промпта
 async function generatePostText({ type = 'story', hint = '' } = {}) {
@@ -20,18 +21,9 @@ export async function run(page, {
     IG_USER = 'ol.matsuk',
     image = null
 } = {}) {
-    // 1) гарантуємо Threads
-    await ensureThreadsReady(page, timeout, { IG_USER });
-
-    // 2) відкриваємо композер
-    await openComposer(page, timeout);
-
-    // 3) запит до GPT (тут — генерація з промпта)
-    const text = await generatePostText({ type, hint });
-
-    // 4) постимо (і, якщо треба, картинку)
-    await fillAndPost(page, { text, image, timeout });
-
-    // 5) повернення у головну стрічку (звичайно після посту уже там)
+    await tryStep('ensureThreadsReady', () => ensureThreadsReady(page, timeout, { IG_USER }), { page });
+    await tryStep('openComposer', () => openComposer(page, timeout), { page });
+    const text = await tryStep('generatePostText', () => generatePostText({ type, hint }), { context: { type, hint } });
+    await tryStep('fillAndPost', () => fillAndPost(page, { text, image, timeout }), { page, context: { text, image } });
     return { ok: true, textUsed: text };
 }

@@ -10,8 +10,6 @@ import { consultAndExecute } from "../coach/coachAgent.js";
 import { tryStep } from "../helpers/misc.js";
 import { getIgCreds, getThreadsCreds } from "./auth.js";
 import {
-    THREADS_HOME_URLS,
-    THREADS_LOGIN_ANCHOR,
     THREADS_LOGIN_ENTRY_TEXT,
     THREADS_LOGIN_BUTTON_TEXT,
     THREADS_LOGIN_USER_INPUT,
@@ -103,52 +101,6 @@ async function isThreadsAuthorized(page) {
             .some(b => /Опублікувати|Post/i.test(b.textContent || ""));
         return hasComposer || (hasProfile && postBtn);
     }, THREADS_PROFILE_LINK, THREADS_COMPOSER_ANY).catch(() => false);
-}
-
-/** На головній Threads — вхід на /login */
-async function clickLoginEntryOnHome(page) {
-    const url = page.url();
-    logStep(`На сторінці ${url}: шукаю селектор ${THREADS_LOGIN_ANCHOR}`);
-
-    let handle = await page.$(THREADS_LOGIN_ANCHOR);
-
-    if (!handle) {
-        logStep(`На сторінці ${url}: не знайдено ${THREADS_LOGIN_ANCHOR}, шукаю role="button" з текстом /${THREADS_LOGIN_ENTRY_TEXT.source}/`);
-        handle = await page.evaluateHandle((reSource) => {
-            const re = new RegExp(reSource, "i");
-            const nodes = Array.from(document.querySelectorAll('[role="button"],button,a,div,span'));
-            const isVisible = (el) => {
-                const r = el.getBoundingClientRect();
-                const cs = getComputedStyle(el);
-                return r.width > 4 && r.height > 4 && cs.visibility !== "hidden" && cs.display !== "none";
-            };
-            return nodes.find(n => n.textContent && re.test(n.textContent) && isVisible(n)) || null;
-        }, THREADS_LOGIN_ENTRY_TEXT.source).catch(() => null);
-    }
-
-    if (!handle) {
-        const dom = await page.content();
-        fs.writeFileSync(path.resolve("коди сторінок", "threads_home_missing_login.html"), dom);
-        const shot = await takeShot(page, "coach_login_entry");
-        const goal = "Find and click login/SSO button on Threads home to navigate to /login";
-        const candidates = { tried: [THREADS_LOGIN_ANCHOR, `role=button + /${THREADS_LOGIN_ENTRY_TEXT.source}/`] };
-        const coach = await consultAndExecute({
-            page, stage: "threads.loginEntry", message: "Login entry not found",
-            goal, screenshotPath: shot, dom, candidates
-        });
-        if (!coach.ok) {
-            const e = new Error("Не знайшов лінк/кнопку входу на /login на головній Threads (coach failed).");
-            e.keepOpen = true; e.coach = coach; throw e;
-        }
-        return; // Коуч вже клікнув і, ймовірно, був навігейт
-    }
-
-    await takeShot(page, "before_click_login_entry");
-    await Promise.all([
-        page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 30000 }).catch(() => { }),
-        clickHandle(page, handle).catch(() => { }),
-    ]);
-    await takeShot(page, "after_click_login_entry");
 }
 
 /** На /login — клік по «Продовжити з Instagram» */
@@ -363,7 +315,11 @@ async function fillThreadsLoginForm(page, user, pass) {
 }
 
 async function clickContinueWithInstagramOnLogin(page, creds = {}) {
-    logStep("На /login: шукаю «Продовжити з Instagram»…");
+    logStep("На /login: заповнюю форму логіну…");
+    const filled = await fillThreadsLoginForm(page, creds.user, creds.pass);
+    if (filled) return;
+
+    logStep("Форма не знайдена або не заповнена — шукаю «Продовжити з Instagram»…");
     let sso = null;
     const until = Date.now() + 15000;
     while (!sso && Date.now() < until) {
@@ -372,9 +328,6 @@ async function clickContinueWithInstagramOnLogin(page, creds = {}) {
     }
 
     if (!sso) {
-        const filled = await fillThreadsLoginForm(page, creds.user, creds.pass);
-        if (filled) return;
-
         const dom = await page.content();
         fs.writeFileSync(path.resolve("коди сторінок", "threads_login_missing_sso.html"), dom);
         const shot = await takeShot(page, "missing_continue_with_instagram");
@@ -439,15 +392,11 @@ export async function ensureThreadsReady(page, opts = {}) {
 
     await tryStep("INIT: preload cookies", () => loadCookies(page), { page });
 
-    await tryStep("Go to Threads (uk)", async () => {
+    await tryStep("Go to Threads login", async () => {
         await retry(async () => {
-            for (const url of THREADS_HOME_URLS) {
-                try { await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 }); return; }
-                catch { }
-            }
-            throw new Error("Threads home not reachable");
+            await page.goto('https://www.threads.com/login', { waitUntil: "domcontentloaded", timeout: 30000 });
         });
-        await takeShot(page, "home_loaded");
+        await takeShot(page, "login_loaded");
     }, { page });
 
     const already = await tryStep("Check threads auth", () => isThreadsAuthorized(page), { page });
@@ -457,74 +406,74 @@ export async function ensureThreadsReady(page, opts = {}) {
         return;
     }
 
-    await tryStep("login entry on home", () => clickLoginEntryOnHome(page), { page });
+    await tryStep("threads login", () => clickContinueWithInstagramOnLogin(page, { user: threadsUser, pass: threadsPass }), { page });
 
-    await tryStep("threads login or sso", () => clickContinueWithInstagramOnLogin(page, { user: threadsUser, pass: threadsPass }), { page });
+    const redirectedToIg = await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
 
-    await tryStep("wait instagram redirect", () => waitUrlHas(page, "instagram.com", 25000), { page });
+    if (redirectedToIg) {
+        const tEnd = Date.now() + 70000;
+        while (Date.now() < tEnd) {
+            const url = page.url() || "";
 
-    const tEnd = Date.now() + 70000;
-    while (Date.now() < tEnd) {
-        const url = page.url() || "";
+            // (а) Вибір акаунта
+            const chosen = await page.evaluate((nick) => {
+                const btns = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'));
+                const t = btns.find(b => (b.textContent || "").trim().toLowerCase().includes(nick.toLowerCase()));
+                if (t) { t.scrollIntoView({ block: "center" }); t.click(); return true; }
+                return false;
+            }, igUser).catch(() => false);
 
-        // (а) Вибір акаунта
-        const chosen = await page.evaluate((nick) => {
-            const btns = Array.from(document.querySelectorAll('div[role="button"], a[role="button"], button'));
-            const t = btns.find(b => (b.textContent || "").trim().toLowerCase().includes(nick.toLowerCase()));
-            if (t) { t.scrollIntoView({ block: "center" }); t.click(); return true; }
-            return false;
-        }, igUser).catch(() => false);
-
-        if (chosen) {
-            logStep(`Вибрав акаунт: ${igUser}`);
-            await handleSaveCredentialsIfAppears(page);
-            await waitUrlHas(page, "threads.", 45000);
-            break;
-        }
-
-        // (б) Форма логіну IG
-        const hasForm = await page.$(IG_LOGIN_FORM);
-        if (hasForm) {
-            if (!igUser || !igPass) {
-                const e = new Error("IG_USER / IG_PASS не задані для логіну в Instagram.");
-                e.keepOpen = true;
-                throw e;
+            if (chosen) {
+                logStep(`Вибрав акаунт: ${igUser}`);
+                await handleSaveCredentialsIfAppears(page);
+                await waitUrlHas(page, "threads.", 45000);
+                break;
             }
-            logStep("Instagram login form found — typing creds");
 
-            await page.focus(IG_USER_INPUT).catch(() => { });
-            await page.keyboard.down("Control").catch(() => { });
-            await page.keyboard.press("A").catch(() => { });
-            await page.keyboard.up("Control").catch(() => { });
-            await page.type(IG_USER_INPUT, igUser, { delay: 20 });
+            // (б) Форма логіну IG
+            const hasForm = await page.$(IG_LOGIN_FORM);
+            if (hasForm) {
+                if (!igUser || !igPass) {
+                    const e = new Error("IG_USER / IG_PASS не задані для логіну в Instagram.");
+                    e.keepOpen = true;
+                    throw e;
+                }
+                logStep("Instagram login form found — typing creds");
 
-            await page.focus(IG_PASS_INPUT).catch(() => { });
-            await page.keyboard.down("Control").catch(() => { });
-            await page.keyboard.press("A").catch(() => { });
-            await page.keyboard.up("Control").catch(() => { });
-            await page.type(IG_PASS_INPUT, igPass, { delay: 20 });
+                await page.focus(IG_USER_INPUT).catch(() => { });
+                await page.keyboard.down("Control").catch(() => { });
+                await page.keyboard.press("A").catch(() => { });
+                await page.keyboard.up("Control").catch(() => { });
+                await page.type(IG_USER_INPUT, igUser, { delay: 20 });
 
-            await takeShot(page, "ig_login_filled");
+                await page.focus(IG_PASS_INPUT).catch(() => { });
+                await page.keyboard.down("Control").catch(() => { });
+                await page.keyboard.press("A").catch(() => { });
+                await page.keyboard.up("Control").catch(() => { });
+                await page.type(IG_PASS_INPUT, igPass, { delay: 20 });
 
-            await Promise.all([
-                page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => { }),
-                page.click(IG_SUBMIT_BTN).catch(async () => {
-                    await page.evaluate(() => {
-                        const btn = Array.from(document.querySelectorAll('button,[role="button"]'))
-                            .find(b => /log in|увійти/i.test(b.textContent || ""));
-                        if (btn) btn.click();
-                    });
-                }),
-            ]);
+                await takeShot(page, "ig_login_filled");
 
-            await takeShot(page, "ig_login_submit");
-            await handleSaveCredentialsIfAppears(page);
-            await waitUrlHas(page, "threads.", 45000);
-            break;
+                await Promise.all([
+                    page.waitForNavigation({ waitUntil: "domcontentloaded", timeout: 45000 }).catch(() => { }),
+                    page.click(IG_SUBMIT_BTN).catch(async () => {
+                        await page.evaluate(() => {
+                            const btn = Array.from(document.querySelectorAll('button,[role="button"]'))
+                                .find(b => /log in|увійти/i.test(b.textContent || ""));
+                            if (btn) btn.click();
+                        });
+                    }),
+                ]);
+
+                await takeShot(page, "ig_login_submit");
+                await handleSaveCredentialsIfAppears(page);
+                await waitUrlHas(page, "threads.", 45000);
+                break;
+            }
+
+            if (/threads\.(net|com)/i.test(url)) break; // вже редіректимося назад
+            await sleep(300);
         }
-
-        if (/threads\.(net|com)/i.test(url)) break; // вже редіректимося назад
-        await sleep(300);
     }
 
     await tryStep("Очікую повернення у Threads…", () => waitUrlHas(page, "threads.", 45000), { page });

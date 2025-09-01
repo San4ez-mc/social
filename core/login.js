@@ -114,31 +114,35 @@ async function fillThreadsLoginForm(page, user, pass) {
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
         (async () => {
-            const clicked = await page.evaluate((xpathSel, re) => {
-                const evaluateXPath = (sel) => {
-                    try {
-                        const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                        return result.singleNodeValue;
-                    } catch {
-                        return null;
+            const found = await page.evaluate((xpathSel, re) => {
+                return new Promise(resolve => {
+                    const evaluateXPath = (sel) => {
+                        try {
+                            const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                            return result.singleNodeValue;
+                        } catch {
+                            return null;
+                        }
+                    };
+                    const btn = evaluateXPath(xpathSel);
+                    const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+                    const rx = new RegExp(re, 'i');
+                    const el = btn || nodes.find(n => rx.test(n.textContent || ''));
+                    if (el) {
+                        const prevOutline = el.style.outline;
+                        el.style.outline = '3px solid red';
+                        setTimeout(() => {
+                            el.style.outline = prevOutline;
+                            el.click();
+                            resolve(true);
+                        }, 2000);
+                    } else {
+                        resolve(false);
                     }
-                };
-                const btn = evaluateXPath(xpathSel);
-                if (btn) {
-                    btn.click();
-                    return true;
-                }
-                const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
-                const rx = new RegExp(re, 'i');
-                const el = nodes.find(n => rx.test(n.textContent || ''));
-                if (el) {
-                    el.click();
-                    return true;
-                }
-                return false;
+                });
             }, sSel, THREADS_LOGIN_ENTRY_TEXT.source);
-            if (!clicked) {
-                // no button matched
+            if (!found) {
+                throw new Error('Login submit button not found');
             }
         })()
     ]);

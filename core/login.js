@@ -114,16 +114,31 @@ async function fillThreadsLoginForm(page, user, pass) {
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
         (async () => {
-            const [btn] = await page.$x(sSel).catch(() => []);
-            if (btn) {
-                await btn.click().catch(() => { });
-            } else {
-                await page.evaluate((re) => {
-                    const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
-                    const rx = new RegExp(re, 'i');
-                    const el = nodes.find(n => rx.test(n.textContent || ''));
-                    if (el) el.click();
-                }, THREADS_LOGIN_ENTRY_TEXT.source);
+            const clicked = await page.evaluate((xpathSel, re) => {
+                const evaluateXPath = (sel) => {
+                    try {
+                        const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                        return result.singleNodeValue;
+                    } catch {
+                        return null;
+                    }
+                };
+                const btn = evaluateXPath(xpathSel);
+                if (btn) {
+                    btn.click();
+                    return true;
+                }
+                const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
+                const rx = new RegExp(re, 'i');
+                const el = nodes.find(n => rx.test(n.textContent || ''));
+                if (el) {
+                    el.click();
+                    return true;
+                }
+                return false;
+            }, sSel, THREADS_LOGIN_ENTRY_TEXT.source);
+            if (!clicked) {
+                // no button matched
             }
         })()
     ]);

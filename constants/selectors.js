@@ -16,8 +16,10 @@ export const THREADS_LOGIN_ANCHOR = 'a[href^="/login"]';
 export const THREADS_LOGIN_ENTRY_TEXT = /Увійти|Log in/i;
 
 // Форма логіну Threads
-export const THREADS_LOGIN_USER_INPUT = 'input[type="text"], input[type="email"], input[name="username"], input[autocomplete="username"]';
-export const THREADS_LOGIN_PASS_INPUT = 'input[type="password"], input[name="password"], input[autocomplete="current-password"]';
+// Поле логіну: спочатку autocomplete="username"
+export const THREADS_LOGIN_USER_INPUT = 'input[autocomplete="username"], input[type="text"], input[type="email"], input[name="username"], input[placeholder^="Ім\'я користувача"]';
+// Поле пароля: спочатку autocomplete="current-password"
+export const THREADS_LOGIN_PASS_INPUT = 'input[autocomplete="current-password"], input[type="password"], input[name="password"], input[placeholder^="Пароль"]';
 // Кнопка входу може бути input[type="submit"] без тексту або div з текстом "Увійти"
 export const THREADS_LOGIN_SUBMIT = "//*[@type='submit'] | //div[@role='button'][.//div[contains(normalize-space(), 'Увійти')]]";
 

@@ -9,7 +9,6 @@ import {
 import { tryStep } from "../helpers/misc.js";
 import { getThreadsCreds } from "./auth.js";
 import {
-    THREADS_LOGIN_ENTRY_TEXT,
     THREADS_LOGIN_USER_INPUT,
     THREADS_LOGIN_PASS_INPUT,
     THREADS_LOGIN_SUBMIT,
@@ -89,13 +88,21 @@ async function isThreadsAuthorized(page) {
 
 
 async function fillThreadsLoginForm(page, user, pass) {
-    if (!user || !pass) return false;
+    if (!user || !pass) {
+        console.log('[fillThreadsLoginForm] missing creds', { user, pass });
+        return false;
+    }
     const uSel = THREADS_LOGIN_USER_INPUT;
     const pSel = THREADS_LOGIN_PASS_INPUT;
     const sSel = THREADS_LOGIN_SUBMIT;
+    console.log('[fillThreadsLoginForm] selectors', { uSel, pSel, sSel });
     const u = await page.$(uSel).catch(() => null);
     const p = await page.$(pSel).catch(() => null);
-    if (!u || !p) return false;
+    console.log('[fillThreadsLoginForm] inputs found', { u: !!u, p: !!p });
+    if (!u || !p) {
+        console.log('[fillThreadsLoginForm] missing input element');
+        return false;
+    }
 
     await page.focus(uSel).catch(() => { });
     await page.keyboard.down('Control').catch(() => { });
@@ -111,41 +118,26 @@ async function fillThreadsLoginForm(page, user, pass) {
 
     await takeShot(page, 'threads_login_filled');
 
-    const handle = await page.evaluateHandle((xpathSel, re) => {
-        const evaluateXPath = (sel) => {
-            try {
-                const result = document.evaluate(sel, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-                return result.singleNodeValue;
-            } catch {
-                return null;
-            }
-        };
-        const btn = evaluateXPath(xpathSel);
-        const nodes = Array.from(document.querySelectorAll('button,[role="button"]'));
-        const rx = new RegExp(re, 'i');
-        const el = btn || nodes.find(n => rx.test(n.textContent || ''));
-        return el || null;
-    }, sSel, THREADS_LOGIN_ENTRY_TEXT.source);
-    const loginBtn = handle.asElement();
+    console.log('[fillThreadsLoginForm] search button using', sSel);
+    const [loginBtn] = await page.$x(sSel).catch(() => []);
     if (!loginBtn) {
-        await handle.dispose();
-        throw new Error('Login submit button not found');
+        console.log('[fillThreadsLoginForm] login button not found');
+        return false;
     }
+    const btnHtml = await page.evaluate(el => el.outerHTML, loginBtn).catch(() => null);
+    console.log('[fillThreadsLoginForm] loginBtn html:', btnHtml);
 
     await page.evaluate(el => {
         el.dataset.prevOutline = el.style.outline || '';
         el.style.outline = '3px solid red';
     }, loginBtn);
-    await sleep(2000);
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
-
         page.evaluate(el => {
             const prev = el.dataset.prevOutline;
             el.click();
             el.style.outline = prev;
         }, loginBtn)
-
     ]);
 
     await loginBtn.dispose();

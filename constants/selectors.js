@@ -18,7 +18,8 @@ export const THREADS_LOGIN_ENTRY_TEXT = /Увійти|Log in/i;
 // Форма логіну Threads
 export const THREADS_LOGIN_USER_INPUT = 'input[type="text"], input[type="email"], input[name="username"], input[autocomplete="username"]';
 export const THREADS_LOGIN_PASS_INPUT = 'input[type="password"], input[name="password"], input[autocomplete="current-password"]';
-export const THREADS_LOGIN_SUBMIT = "//div[@role='button'][.//div[contains(normalize-space(), 'Увійти')]]";
+// Кнопка входу може бути input[type="submit"] без тексту або div з текстом "Увійти"
+export const THREADS_LOGIN_SUBMIT = "//*[@type='submit'] | //div[@role='button'][.//div[contains(normalize-space(), 'Увійти')]]";
 
 
 // Ознаки авторизованого фіду

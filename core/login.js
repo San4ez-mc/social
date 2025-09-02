@@ -192,7 +192,7 @@ async function loginViaApi(page, user, pass) {
 
 
 export async function ensureThreadsReady(page, opts = {}) {
-    const { user: threadsUser, pass: threadsPass } = getThreadsCreds();
+    const { user: threadsUser, pass: threadsPass } = { ...getThreadsCreds(), ...opts };
 
     page.setDefaultTimeout(20000);
     page.setDefaultNavigationTimeout(30000);

@@ -11,7 +11,6 @@ import { getThreadsCreds } from "./auth.js";
 import {
     THREADS_LOGIN_USER_INPUT,
     THREADS_LOGIN_PASS_INPUT,
-    THREADS_LOGIN_SUBMIT,
     THREADS_PROFILE_LINK,
     THREADS_COMPOSER_ANY,
     COOKIES_THREADS_PATH,
@@ -43,6 +42,31 @@ async function retry(fn, tries = 3, delays = [500, 1000, 2000]) {
         catch (e) { lastErr = e; if (i < tries - 1) await sleep(delays[i] || 1000); }
     }
     throw lastErr;
+}
+
+async function findWithFallback(page, css, xpath) {
+    try {
+        return await page.waitForSelector(css, { visible: true, timeout: 5000 });
+    } catch {
+        // ignore
+    }
+    try {
+        const handle = await page.evaluateHandle((xp) => {
+            const result = document.evaluate(
+                xp,
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            );
+            return result.singleNodeValue;
+        }, xpath);
+        const el = handle?.asElement?.() || null;
+        if (!el) { try { await handle.dispose(); } catch { } }
+        return el;
+    } catch {
+        return null;
+    }
 }
 /* ========= cookies ========= */
 async function setCookies(page, cookies) {
@@ -94,8 +118,7 @@ async function fillThreadsLoginForm(page, user, pass) {
     }
     const uSel = THREADS_LOGIN_USER_INPUT;
     const pSel = THREADS_LOGIN_PASS_INPUT;
-    const sSel = THREADS_LOGIN_SUBMIT;
-    console.log('[fillThreadsLoginForm] selectors', { uSel, pSel, sSel });
+    console.log('[fillThreadsLoginForm] selectors', { uSel, pSel });
     const u = await page.$(uSel).catch(() => null);
     const p = await page.$(pSel).catch(() => null);
     console.log('[fillThreadsLoginForm] inputs found', { u: !!u, p: !!p });
@@ -118,40 +141,20 @@ async function fillThreadsLoginForm(page, user, pass) {
 
     await takeShot(page, 'threads_login_filled');
 
-    console.log('[fillThreadsLoginForm] search button using', sSel);
-    // Puppeteer v23 dropped the `$x` helper. Use `document.evaluate` instead
-    const handle = await page
-        .evaluateHandle(sel => {
-            const result = document.evaluate(
-                sel,
-                document,
-                null,
-                XPathResult.FIRST_ORDERED_NODE_TYPE,
-                null
-            );
-            return result.singleNodeValue;
-        }, sSel)
-        .catch(() => null);
-    const loginBtn = handle?.asElement?.();
+    const cssBtn = "input[type='submit'], div[role='button']";
+    const xpathBtn = "//*[contains(text(),'Увійти')]";
+    console.log('[fillThreadsLoginForm] search button using', { cssBtn, xpathBtn });
+    const loginBtn = await findWithFallback(page, cssBtn, xpathBtn);
     if (!loginBtn) {
         console.log('[fillThreadsLoginForm] login button not found');
-        await handle?.dispose?.();
         return false;
     }
     const btnHtml = await page.evaluate(el => el.outerHTML, loginBtn).catch(() => null);
     console.log('[fillThreadsLoginForm] loginBtn html:', btnHtml);
 
-    await page.evaluate(el => {
-        el.dataset.prevOutline = el.style.outline || '';
-        el.style.outline = '3px solid red';
-    }, loginBtn);
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
-        page.evaluate(el => {
-            const prev = el.dataset.prevOutline;
-            el.click();
-            el.style.outline = prev;
-        }, loginBtn)
+        loginBtn.click().catch(() => { }),
     ]);
 
     await loginBtn.dispose();

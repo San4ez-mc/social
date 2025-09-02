@@ -3,6 +3,7 @@
 export {
     waitForAny,
     clickAny,
+    clickCssOrXPath,
     clickByText,
     clickByPartialText,
     typeLikeHuman

@@ -136,7 +136,7 @@ async function fillThreadsLoginForm(page, user, pass) {
         el.dataset.prevOutline = el.style.outline || '';
         el.style.outline = '3px solid red';
     }, loginBtn);
-    await page.waitForTimeout(2000);
+    await sleep(2000);
     await Promise.all([
         page.waitForNavigation({ waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => { }),
 

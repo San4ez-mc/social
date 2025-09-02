@@ -1,7 +1,7 @@
 // actions/search.follow.js
 import { ensureThreadsReady } from '../core/login.js';
 import { isOnThreadsFeed } from '../core/feed.js';
-import { waitForAny, clickAny } from '../utils.js';
+import { waitForAny, clickAny, nap } from '../utils.js';
 import { tryStep } from '../helpers/misc.js';
 
 /**
@@ -46,7 +46,7 @@ export async function run(page, {
             await input.click({ clickCount: 3 }).catch(() => { });
             await input.type(q, { delay: 25 });
             await page.keyboard.press('Enter');
-            await page.waitForTimeout(1200);
+            await nap(1200);
 
             const opened = await clickAny(page, [
                 'a[href*="/@"]',
@@ -58,7 +58,7 @@ export async function run(page, {
             const toLike = Math.max(minL, Math.min(maxL, minL + Math.floor(Math.random() * (maxL - minL + 1))));
             for (let i = 0; i < toLike; i++) {
                 await page.evaluate(() => window.scrollBy({ top: window.innerHeight * 0.8, behavior: 'smooth' }));
-                await page.waitForTimeout(600);
+                await nap(600);
                 try {
                     await page.evaluate(() => {
                         const btn = document.querySelector('[aria-label="Подобається"], [aria-label="Like"]');
@@ -76,7 +76,7 @@ export async function run(page, {
             if (followed) follows++;
 
             await page.goBack({ waitUntil: 'domcontentloaded' }).catch(() => { });
-            await page.waitForTimeout(600);
+            await nap(600);
             await page.goto('https://www.threads.com/', { waitUntil: 'domcontentloaded' }).catch(() => { });
         }, { page, context: { query: q } });
     }

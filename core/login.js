@@ -96,24 +96,25 @@ async function fillThreadsLoginForm(page, user, pass) {
     const pSel = THREADS_LOGIN_PASS_INPUT;
     const sSel = THREADS_LOGIN_SUBMIT;
     console.log('[fillThreadsLoginForm] selectors', { uSel, pSel, sSel });
-    const u = await page.$(uSel).catch(() => null);
-    const p = await page.$(pSel).catch(() => null);
-    console.log('[fillThreadsLoginForm] inputs found', { u: !!u, p: !!p });
-    if (!u || !p) {
-        console.log('[fillThreadsLoginForm] missing input element');
+    let u, p;
+    try {
+        u = await page.waitForSelector(uSel, { timeout: 15000 });
+    } catch (e) {
+        logError('[fillThreadsLoginForm] user input not found');
         return false;
     }
+    try {
+        p = await page.waitForSelector(pSel, { timeout: 15000 });
+    } catch (e) {
+        logError('[fillThreadsLoginForm] pass input not found');
+        return false;
+    }
+    console.log('[fillThreadsLoginForm] inputs found', { u: !!u, p: !!p });
 
-    await page.focus(uSel).catch(() => { });
-    await page.keyboard.down('Control').catch(() => { });
-    await page.keyboard.press('A').catch(() => { });
-    await page.keyboard.up('Control').catch(() => { });
+    await page.$eval(uSel, el => (el.value = '')).catch(() => { });
     await page.type(uSel, user, { delay: 20 }).catch(() => { });
 
-    await page.focus(pSel).catch(() => { });
-    await page.keyboard.down('Control').catch(() => { });
-    await page.keyboard.press('A').catch(() => { });
-    await page.keyboard.up('Control').catch(() => { });
+    await page.$eval(pSel, el => (el.value = '')).catch(() => { });
     await page.type(pSel, pass, { delay: 20 }).catch(() => { });
 
     await takeShot(page, 'threads_login_filled');

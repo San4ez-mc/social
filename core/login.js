@@ -111,16 +111,10 @@ async function fillThreadsLoginForm(page, user, pass) {
         return false;
     }
 
-    await page.focus(uSel).catch(() => { });
-    await page.keyboard.down('Control').catch(() => { });
-    await page.keyboard.press('A').catch(() => { });
-    await page.keyboard.up('Control').catch(() => { });
+    await page.$eval(uSel, el => el.value = '').catch(() => { });
     await page.type(uSel, user, { delay: 20 }).catch(() => { });
 
-    await page.focus(pSel).catch(() => { });
-    await page.keyboard.down('Control').catch(() => { });
-    await page.keyboard.press('A').catch(() => { });
-    await page.keyboard.up('Control').catch(() => { });
+    await page.$eval(pSel, el => el.value = '').catch(() => { });
     await page.type(pSel, pass, { delay: 20 }).catch(() => { });
 
     await takeShot(page, 'threads_login_filled');

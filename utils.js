@@ -142,6 +142,30 @@ export async function clickAny(page, selectors, { timeout = 8000, purpose = '' }
     return true;
 }
 
+/** Клік через CSS з fallback на XPath */
+export async function clickCssOrXPath(page, cssSelectors, xpath, { timeout = 10000, purpose = '' } = {}) {
+    const combined = Array.isArray(cssSelectors) ? cssSelectors.filter(Boolean).join(',') : cssSelectors;
+    let handle = null;
+    if (combined) {
+        try {
+            handle = await page.waitForSelector(combined, { timeout, visible: true });
+        } catch { /* ignore */ }
+    }
+    if (!handle && xpath) {
+        try {
+            const nodes = await page.$x(xpath);
+            handle = nodes[0] || null;
+        } catch { /* ignore */ }
+    }
+    if (handle) {
+        try { await handle.click(); } catch { /* ignore */ }
+        await nap(200);
+        return true;
+    }
+    if (purpose) logStep(`⚠️ Не знайшов: ${purpose}`);
+    return false;
+}
+
 /** Клік по точному тексту
  *  Сигнатури:
  *   - clickByText(page, text)

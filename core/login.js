@@ -119,9 +119,23 @@ async function fillThreadsLoginForm(page, user, pass) {
     await takeShot(page, 'threads_login_filled');
 
     console.log('[fillThreadsLoginForm] search button using', sSel);
-    const [loginBtn] = await page.$x(sSel).catch(() => []);
+    // Puppeteer v23 dropped the `$x` helper. Use `document.evaluate` instead
+    const handle = await page
+        .evaluateHandle(sel => {
+            const result = document.evaluate(
+                sel,
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+            );
+            return result.singleNodeValue;
+        }, sSel)
+        .catch(() => null);
+    const loginBtn = handle?.asElement?.();
     if (!loginBtn) {
         console.log('[fillThreadsLoginForm] login button not found');
+        await handle?.dispose?.();
         return false;
     }
     const btnHtml = await page.evaluate(el => el.outerHTML, loginBtn).catch(() => null);

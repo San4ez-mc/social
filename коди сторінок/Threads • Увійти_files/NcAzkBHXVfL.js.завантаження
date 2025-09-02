@@ -1,0 +1,5 @@
+;/*FB_PKG_DELIM*/
+
+__d("BarcelonaHasPermalinkInlineExpansion.relayprovider",["qex"],(function(a,b,c,d,e,f,g){"use strict";a={get:function(){return c("qex")._("205")===!0}};g["default"]=a}),98);
+__d("BarcelonaInlineReplyExpandTapFalcoEvent",["FalcoLoggerInternal","getFalcoLogPolicy_DO_NOT_USE"],(function(a,b,c,d,e,f,g){"use strict";a=c("getFalcoLogPolicy_DO_NOT_USE")("6186");b=d("FalcoLoggerInternal").create("barcelona_inline_reply_expand_tap",a);e=b;g["default"]=e}),98);
+__d("XMDSDialogLoadingState.react",["CDSDialogLoadingState.react"],(function(a,b,c,d,e,f,g){"use strict";g["default"]=c("CDSDialogLoadingState.react"),Object.keys(d("CDSDialogLoadingState.react")).forEach(function(a){if(a==="default"||a==="__esModule")return;g[a]=d("CDSDialogLoadingState.react")[a]})}),98);

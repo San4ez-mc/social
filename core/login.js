@@ -167,6 +167,34 @@ async function fillThreadsLoginForm(page, user, pass) {
     return true;
 }
 
+async function loginViaApi(page, user, pass) {
+    try {
+        const res = await page.evaluate(async ({ user, pass }) => {
+            try {
+                const enc = window.require("InstagramPasswordEncryption");
+                const api = window.require("BarcelonaLoginAPI");
+                const resp = await api.login({
+                    username: user,
+                    password: pass,
+                    encryptionKeyId: enc.key_id,
+                    encryptionPublicKey: enc.public_key,
+                    encryptionVersion: enc.version,
+                    skipLogin: false,
+                    next: null,
+                    canThreadsSignUpWithIG: true,
+                });
+                return resp?.json;
+            } catch (err) {
+                return { error: err?.message };
+            }
+        }, { user, pass });
+        return res;
+    } catch (e) {
+        logError(`[loginViaApi] ${e?.message}`);
+        return null;
+    }
+}
+
 
 
 export async function ensureThreadsReady(page, opts = {}) {
@@ -203,6 +231,16 @@ export async function ensureThreadsReady(page, opts = {}) {
         logStep("URL все ще /login, повторюю вхід");
         await tryStep("threads login retry", () => fillThreadsLoginForm(page, threadsUser, threadsPass), { page });
         await sleep(1000);
+    }
+
+    if ((page.url() || "").includes("/login")) {
+        logStep("Спроба API логіну");
+        const apiRes = await tryStep("threads api login", () => loginViaApi(page, threadsUser, threadsPass), { page });
+        if (apiRes?.authenticated) {
+            const redirect = apiRes.redirect_uri || 'https://www.threads.net/';
+            await tryStep("api login redirect", () => retry(() => page.goto(redirect, { waitUntil: "domcontentloaded", timeout: 30000 })), { page });
+            await sleep(1000);
+        }
     }
 
     await tryStep("Очікую завантаження фіду Threads…", () => waitUrlNot(page, "/login", 45000), { page });

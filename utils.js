@@ -19,7 +19,14 @@ export const nap = (ms) => new Promise(res => setTimeout(res, ms));
 
 /** Рандомні утиліти */
 export const randInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-export const shuffle = (arr) => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(([, v]) => v);
+export const shuffle = (arr) => {
+    const copy = [...arr];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+};
 
 /** Очікування будь-якого селектора (+ підтримка text=/text= і :has-text()) */
 export async function waitForAny(page, selectors, { timeout = 10000, visible = true, optional = true, purpose = '' } = {}) {

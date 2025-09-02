@@ -1,5 +1,5 @@
 // core/feed.js
-import { waitForAny, screenshotStep } from '../utils.js';
+import { waitForAny, screenshotStep, nap } from '../utils.js';
 import { THREADS_PROFILE_LINK, THREADS_COMPOSER_ANY } from '../constants/selectors.js';
 
 export async function isOnThreadsFeed(page, expectedUser) {
@@ -34,7 +34,7 @@ export async function scrollAndReact(page, {
 
     for (let r = 0; r < rounds; r++) {
         await page.evaluate(() => window.scrollBy({ top: window.innerHeight * 0.9, behavior: 'smooth' }));
-        await page.waitForTimeout(pause);
+        await nap(pause);
 
         // знайдемо видимі пости та їхні кнопки
         const posts = await page.evaluate(() => {
@@ -90,14 +90,14 @@ export async function scrollAndReact(page, {
                             }
                         }
                     }, { text: p.text, reply });
-                    await page.waitForTimeout(300);
+                    await nap(300);
 
                     const replyBox = await page.$('textarea, div[contenteditable="true"]');
                     if (replyBox) {
                         await replyBox.type(reply, { delay: 10 });
                         await page.keyboard.press('Enter');
                         reacted.commented++;
-                        await page.waitForTimeout(300);
+                        await nap(300);
                     }
                 } catch { }
             }

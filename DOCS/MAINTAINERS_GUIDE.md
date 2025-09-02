@@ -30,7 +30,7 @@
 ## Код-стайл
 - Імена функцій — дієслово в camelCase.
 - У діях (`actions/*`) імперативний тон логів: `[STEP] ...`.
-- Максимум відкладених `await page.waitForTimeout(…)` — використовуй `waitForAny`.
+- Максимум відкладених `await nap(…)` — використовуй `waitForAny`.
 
 ## Перевірка перед комітом
 - `node postThreads.js --action=post --type=tip`

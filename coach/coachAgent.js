@@ -1,6 +1,7 @@
 // coach/coachAgent.js
 // Інтеграція з ChatGPT (Chat Completions) + виконання команд на сторінці.
 import { logStep, logError, appendCoachSolution } from "../helpers/logger.js";
+import { nap } from "../utils.js";
 
 const COACH_MODEL = process.env.COACH_MODEL || "gpt-4o-mini";
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
@@ -119,7 +120,7 @@ async function executePlanOnPage(page, plan) {
                 await page.type(act.selector, act.text || "", { delay: 10 });
                 r.ok = true;
             } else if (act.type === "wait") {
-                await page.waitForTimeout(act.timeoutMs || 500);
+                await nap(act.timeoutMs || 500);
                 r.ok = true;
             } else {
                 throw new Error("unknown action or missing selector");

@@ -96,11 +96,18 @@ async function fillThreadsLoginForm(page, user, pass) {
     const pSel = THREADS_LOGIN_PASS_INPUT;
     const sSel = THREADS_LOGIN_SUBMIT;
     console.log('[fillThreadsLoginForm] selectors', { uSel, pSel, sSel });
-    const u = await page.$(uSel).catch(() => null);
-    const p = await page.$(pSel).catch(() => null);
+    const timeout = 10000;
+    const u = await page.waitForSelector(uSel, { timeout }).catch(e => {
+        logError(`[fillThreadsLoginForm] wait for user input failed: ${e?.message}`);
+        return null;
+    });
+    const p = await page.waitForSelector(pSel, { timeout }).catch(e => {
+        logError(`[fillThreadsLoginForm] wait for pass input failed: ${e?.message}`);
+        return null;
+    });
     console.log('[fillThreadsLoginForm] inputs found', { u: !!u, p: !!p });
     if (!u || !p) {
-        console.log('[fillThreadsLoginForm] missing input element');
+        logError('[fillThreadsLoginForm] missing input element');
         return false;
     }
 
